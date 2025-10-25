@@ -1,0 +1,96 @@
+name: Nightly Build
+
+on:
+  push:
+    branches:
+      - dev/core
+  workflow_dispatch:
+
+jobs:
+  build-nightly:
+    runs-on: windows-latest
+    
+    strategy:
+      matrix:
+        runtime: [win-x64, win-x86]
+        selfContained: [true, false]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Install dependencies
+      run: dotnet restore
+
+    - name: Build project
+      run: |
+        $suffix = ""
+        if ($env:selfContained -eq "false") {
+          $suffix = "-no-runtime"
+        }
+        
+        dotnet publish StickyHomeworks/StickyHomeworks.csproj -c Release -r ${{ matrix.runtime }} --self-contained ${{ matrix.selfContained }} -p:PublishSingleFile=true -o ./publish-${{ matrix.runtime }}${suffix}/
+
+    - name: Get version info
+      id: version
+      run: |
+        echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+        echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - name: Create release archives
+      run: |
+        $suffix = ""
+        if ($env:selfContained -eq "false") {
+          $suffix = "-no-runtime"
+        }
+        
+        cd publish-${{ matrix.runtime }}${suffix}
+        Compress-Archive -Path * -DestinationPath ../sticky-attentions-forked-nightly-${{ matrix.runtime }}${suffix}-${{ steps.version.outputs.date }}-${{ steps.version.outputs.sha_short }}.zip
+      shell: pwsh
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: sticky-attentions-forked-nightly-${{ matrix.runtime }}${suffix}-${{ steps.version.outputs.date }}-${{ steps.version.outputs.sha_short }}
+        path: sticky-attentions-forked-nightly-${{ matrix.runtime }}${suffix}-${{ steps.version.outputs.date }}-${{ steps.version.outputs.sha_short }}.zip
+
+    - name: Create nightly release
+      uses: ncipollo/release-action@v1
+      with:
+        artifacts: "sticky-attentions-forked-nightly-*.zip"
+        name: "Nightly Build ${{ steps.version.outputs.date }}-${{ steps.version.outputs.sha_short }}"
+        tag: nightly-${{ steps.version.outputs.date }}-${{ steps.version.outputs.sha_short }}
+        commit: ${{ github.sha }}
+        prerelease: true
+        allowUpdates: true
+        removeArtifacts: true
+        body: |
+          ## Nightly Build ${{ steps.version.outputs.date }}-${{ steps.version.outputs.sha_short }}
+          
+          This is an automated nightly build of Sticky-attentions-forked.
+          Built from commit: ${{ github.sha }}
+          
+          **警告**: 这是一个开发版本，可能包含未完成的功能和稳定性问题。
+          
+          ## 版本说明
+          - `${{ matrix.runtime }}`: 平台架构
+          - `-no-runtime`: 不包含运行时的版本（体积更小但需要安装.NET 8运行时）
+          - 默认版本: 包含完整运行时的独立版本
+          
+          ## 更新说明
+          - 自动构建版本
+          - 包含最新的功能和修复
+          
+          ## 安装说明
+          1. 根据系统选择对应架构版本(x64/x86)
+          2. 下载对应ZIP压缩包
+          3. 解压到目标位置
+          4. 运行sticky-attentions-forked.exe

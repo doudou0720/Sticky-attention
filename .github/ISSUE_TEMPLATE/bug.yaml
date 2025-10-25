@@ -1,0 +1,89 @@
+name: BUG
+description: 提交BUG。
+title: "[Bug]: "
+labels: ["BUG", "待查看","bug"]
+projects: ["Sticky-attention"]
+assignees:
+  - 
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请写出您在使用Sa时出现的问题！
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 描述并复现碰到了的问题！
+      description: 
+      placeholder: 
+      value: "我在点开设置时，发现我点击XXXX后出现了bug!"
+    validations:
+      required: true
+  - type: dropdown
+    id: version
+    attributes:
+      label: 版本
+      description: 您现在使用的是什么版本？
+      options:
+        - 最新测试版
+        - 最新稳定版
+    validations:
+      required: true
+  - type: dropdown
+    id: system
+    attributes:
+      label: 系统版本
+      description: 选择你使用的系统版本
+      options:
+        - win7（32）
+        
+        - win7（64）
+
+        - win10（32）
+
+        - win10（64）
+        - win11（32）
+        - win11（64）
+
+    validations:
+      required: true
+  - type: dropdown
+    id: touch_screen
+    attributes:
+      label: 触屏设备
+      description: 是否是触屏设备？
+      options:
+        - 是
+
+        - 否
+
+    validations:
+      required: true
+  - type: dropdown
+    id: browsers
+    attributes:
+      label: 你在软件的哪个方面遇到了问题？
+      multiple: true
+      options:
+        - 设置
+
+        - 主界面
+
+        - 编辑作业
+
+        - 其他
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 报错日志
+      description: 请复制并粘贴任何相关的日志输出。这将被自动格式化成代码模式，所以不需要反勾号。
+      render: shell
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: 提问时的智慧
+      description: 通过提交此问题，您同意遵守我们的 [提问时的智慧](https://forum.srinternet.top/d/2-ti-wen-de-zhi-hui-2010-zh-cn).  
+      options:
+        - label: 我已了解并遵守【提问时的智慧】
+          required: true

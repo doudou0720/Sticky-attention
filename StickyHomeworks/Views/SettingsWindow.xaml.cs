@@ -1,4 +1,4 @@
-﻿using ClassIsland.Services;
+using ClassIsland.Services;
 using ElysiaFramework;
 using ElysiaFramework.Controls;
 using MaterialDesignThemes.Wpf;
@@ -22,8 +22,7 @@ using System.Windows.Documents;
 using System.Windows.Media;
 using System.Net.Http;
 using static StickyHomeworks.App;
-
-
+using System.Threading.Tasks;
 
 namespace StickyHomeworks.Views;
 /// <summary>
@@ -31,6 +30,7 @@ namespace StickyHomeworks.Views;
 /// </summary>
 public partial class SettingsWindow : MyWindow
 {
+    private GitHubUpdateService _updateService;
 
     private const string UpdateUrl = "http://eb48d3a3.xy.proaa.top/index.xml";
     private const string IconPath01 = "/Assets/icon/上传 (1).png"; // 有最新版本时的图标
@@ -74,10 +74,11 @@ public partial class SettingsWindow : MyWindow
      
         WallpaperPickingService = wallpaperPickingService;
         LogHelper.Info($"设置界面 OPEN！");
-
+        
         InitializeComponent();
         DataContext = this;
         Settings = settingsService.Settings;
+        _updateService = new GitHubUpdateService(Settings);
         settingsService.PropertyChanged += (sender, args) =>
         {
             if (args.PropertyName == "Settings")
@@ -362,9 +363,157 @@ public partial class SettingsWindow : MyWindow
         labelProgress.Visibility = Visibility.Visible;
 
         // 模拟异步检查更新
-        var checkUpdateTask = Task.Run(() => CheckForUpdates());
+        var checkUpdateTask = Task.Run(() => CheckForUpdatesFromGitHub());
     }
 
+    private async void CheckForUpdatesFromGitHub()
+    {
+        try
+        {
+            // 使用GitHub API获取最新版本信息
+            var latestRelease = await _updateService.GetLatestReleaseAsync();
+            
+            if (latestRelease == null)
+            {
+                // 无法获取版本信息
+                Dispatcher.Invoke(() =>
+                {
+                    versionStatusTextBlock.Text = "检查更新失败";
+                    versionStatusTextBlock.FontSize = 40;
+                    versionStatusText.Text = "无法连接到更新服务器";
+                    versionStatusTexts.Text = "";
+                    pbDown.Visibility = Visibility.Collapsed;
+                    labelProgress.Visibility = Visibility.Collapsed;
+                });
+                return;
+            }
+
+            // 检查是否有新版本
+            if (_updateService.IsNewerVersion(latestRelease.TagName, _updateService.GetCurrentVersion()))
+            {
+                // 有新版本
+                Dispatcher.Invoke(() =>
+                {
+                    versionStatusTextBlock.Text = "检测到最新版本";
+                    versionStatusText.Text = $"最新版本: {latestRelease.TagName}"; // 显示最新版本号
+                    versionStatusTexts.Text = "";
+                    versionStatusText.FontSize = 18;
+                    versionStatusText.FontWeight = FontWeights.Bold;
+
+                    versionStatusTextBlock.FontSize = 40;
+                    versionStatusTextBlock.FontWeight = FontWeights.Bold;
+                    statusIcon.Source = new BitmapImage(new Uri(IconPath01, UriKind.Relative));
+                });
+
+                // 寻找合适的下载资源
+                var downloadUrl = FindAppropriateAsset(latestRelease.Assets);
+                if (!string.IsNullOrEmpty(downloadUrl))
+                {
+                    using (var client = new WebClient())
+                    {
+                        // 开始下载
+                        await DownloadUpdate(client, downloadUrl);
+
+                        // 下载完毕
+                        Dispatcher.Invoke(() =>
+                        {
+                            versionStatusTextBlock.Text = "下载完成，请安装最新版本！";
+                            statusIcon.Source = new BitmapImage(new Uri(IconPath03, UriKind.Relative));
+
+                            var result = MessageBox.Show("您确定要运行更新程序吗？", "Sticky-attention", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                            if (result == MessageBoxResult.Yes)
+                            {
+                                // 用户点击了"是"，执行安装逻辑
+                                UnzipFile(DownloadFilePath, DecompressionFolder);
+                                RunExecutableAndCloseApp(Path.Combine(DecompressionFolder, "Sticky-attention.exe"));
+                                Close();
+                            }
+
+                            // 隐藏进度条和标签
+                            pbDown.Visibility = Visibility.Collapsed;
+                            labelProgress.Visibility = Visibility.Collapsed;
+                        });
+                    }
+                }
+                else
+                {
+                    // 未找到合适的下载资源
+                    Dispatcher.Invoke(() =>
+                    {
+                        versionStatusTextBlock.Text = "无合适更新";
+                        versionStatusTextBlock.FontSize = 40;
+                        versionStatusTextBlock.FontWeight = FontWeights.Bold;
+                        versionStatusText.Text = "未找到适用于您系统的更新文件";
+                        versionStatusTexts.Text = "";
+                        statusIcon.Source = new BitmapImage(new Uri(IconPath02, UriKind.Relative));
+
+                        // 隐藏进度条和标签
+                        pbDown.Visibility = Visibility.Collapsed;
+                        labelProgress.Visibility = Visibility.Collapsed;
+                    });
+                }
+            }
+            else
+            {
+                // 没有新版本
+                Dispatcher.Invoke(() =>
+                {
+                    versionStatusTextBlock.Text = "您已是最新！";
+                    versionStatusTextBlock.FontSize = 40;
+                    versionStatusTextBlock.FontWeight = FontWeights.Bold;
+                    statusIcon.Source = new BitmapImage(new Uri(IconPath02, UriKind.Relative));
+
+                    versionStatusText.Text = $"当前版本: {App.AppVersion}"; // 显示当前版本
+                    versionStatusTexts.Text = ""; // 显示当前版本
+                    versionStatusText.FontSize = 18;
+                    versionStatusText.FontWeight = FontWeights.Bold;
+
+                    // 隐藏进度条和标签
+                    pbDown.Visibility = Visibility.Collapsed;
+                    labelProgress.Visibility = Visibility.Collapsed;
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            // 处理异常
+            Dispatcher.Invoke(() =>
+            {
+                versionStatusTextBlock.Text = "发生错误 " ; // 显示具体错误
+                versionStatusTextBlock.FontSize = 40;
+                versionStatusText.Text = "错误详细: " + ex.Message; // 显示具体错误
+                versionStatusTexts.Text = "";
+                pbDown.Visibility = Visibility.Collapsed;
+                labelProgress.Visibility = Visibility.Collapsed;
+            });
+        }
+    }
+
+    private string FindAppropriateAsset(List<GitHubReleaseAsset> assets)
+    {
+        // 根据当前系统架构选择合适的下载资源
+        var architecture = Environment.Is64BitOperatingSystem ? "win-x64" : "win-x86";
+        
+        // 优先选择包含运行时的版本
+        var assetWithRuntime = assets.FirstOrDefault(a => 
+            a.Name.Contains(architecture) && 
+            !a.Name.Contains("no-runtime") && 
+            a.Name.EndsWith(".zip"));
+        
+        if (assetWithRuntime != null)
+            return assetWithRuntime.BrowserDownloadUrl;
+        
+        // 如果没有包含运行时的版本，则选择不包含运行时的版本
+        var assetWithoutRuntime = assets.FirstOrDefault(a => 
+            a.Name.Contains(architecture) && 
+            a.Name.Contains("no-runtime") && 
+            a.Name.EndsWith(".zip"));
+        
+        return assetWithoutRuntime?.BrowserDownloadUrl ?? string.Empty;
+    }
+
+    // 保留原有的CheckForUpdates方法以保持兼容性
     private async void CheckForUpdates()
     {
         using (var client = new WebClient())
@@ -404,7 +553,7 @@ public partial class SettingsWindow : MyWindow
 
                         if (result == MessageBoxResult.Yes)
                         {
-                            // 用户点击了“是”，执行安装逻辑
+                            // 用户点击了"是"，执行安装逻辑
                             UnzipFile(DownloadFilePath, DecompressionFolder);
                             RunExecutableAndCloseApp(Path.Combine(DecompressionFolder, "Sticky-attention.exe"));
                             Close();

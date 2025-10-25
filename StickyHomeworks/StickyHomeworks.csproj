@@ -1,17 +1,19 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.17763.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-	<IncludePackageReferencesDuringMarkupCompilation>true</IncludePackageReferencesDuringMarkupCompilation>
-	<ApplicationIcon>Assets\AppLogo.ico</ApplicationIcon>
-	<UserSecretsId>0d8165ac-3a9f-437c-8b8e-839225e5a88b</UserSecretsId>
-	<AssemblyVersion>1.1.7.6</AssemblyVersion>
-	<FileVersion>1.1.7.6</FileVersion>
-	<IncludeSymbols>False</IncludeSymbols>
+    <IncludePackageReferencesDuringMarkupCompilation>true</IncludePackageReferencesDuringMarkupCompilation>
+    <ApplicationIcon>Assets\AppLogo.ico</ApplicationIcon>
+    <UserSecretsId>0d8165ac-3a9f-437c-8b8e-839225e5a88b</UserSecretsId>
+    <AssemblyVersion>1.1.7.6</AssemblyVersion>
+    <FileVersion>1.1.7.6</FileVersion>
+    <IncludeSymbols>False</IncludeSymbols>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <GenerateAssemblyInfo>False</GenerateAssemblyInfo>

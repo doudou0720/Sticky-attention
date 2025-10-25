@@ -1,0 +1,90 @@
+# release.yml
+# name: Release Build
+name: "[Disabled] Release Build"
+
+on:
+  # push:
+  #   tags:
+  #     - 'v*'
+  workflow_dispatch:  # Keep this for manual triggering if needed
+
+jobs:
+  build-release:
+    if: false  # This will disable all jobs in this workflow
+    runs-on: windows-latest
+    
+    strategy:
+      matrix:
+        runtime: [win-x64, win-x86]
+        selfContained: [true, false]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Get version from tag
+      id: version
+      run: |
+        echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - name: Install dependencies
+      run: dotnet restore
+
+    - name: Build project
+      run: |
+        $suffix = ""
+        if ($env:selfContained -eq "false") {
+          $suffix = "-no-runtime"
+        }
+        
+        dotnet publish StickyHomeworks/StickyHomeworks.csproj -c Release -r ${{ matrix.runtime }} --self-contained ${{ matrix.selfContained }} -p:PublishSingleFile=true -o ./publish-${{ matrix.runtime }}${suffix}/
+
+    - name: Create release archives
+      run: |
+        $suffix = ""
+        if ($env:selfContained -eq "false") {
+          $suffix = "-no-runtime"
+        }
+        
+        cd publish-${{ matrix.runtime }}${suffix}
+        Compress-Archive -Path * -DestinationPath ../StickyHomeworks-${{ steps.version.outputs.tag }}-${{ matrix.runtime }}${suffix}.zip
+      shell: pwsh
+
+    - name: Create GitHub Release
+      uses: ncipollo/release-action@v1
+      with:
+        artifacts: "StickyHomeworks-${{ steps.version.outputs.tag }}-*.zip"
+        name: "Release ${{ steps.version.outputs.tag }}"
+        tag: ${{ steps.version.outputs.tag }}
+        commit: ${{ github.sha }}
+        prerelease: false
+        draft: false
+        body: |
+          ## StickyHomeworks ${{ steps.version.outputs.tag }}
+          
+          感谢下载StickyHomeworks！这是稳定版本${{ steps.version.outputs.tag }}。
+          
+          ## 版本说明
+          - `win-x64`: 64位Windows系统版本
+          - `win-x86`: 32位Windows系统版本
+          - `-no-runtime`: 不包含运行时的版本（体积更小但需要安装.NET 8运行时）
+          - 默认版本: 包含完整运行时的独立版本
+          
+          ## 更新内容
+          - TODO: 添加更新日志
+          
+          ## 安装说明
+          1. 根据系统选择对应架构版本(x64/x86)
+          2. 下载对应ZIP压缩包
+          3. 解压到目标位置
+          4. 运行StickyHomeworks.exe
+          
+          ## 系统要求
+          - Windows 7 或更高版本
+          - .NET 8 运行时（仅在使用-no-runtime版本时需要单独安装）

@@ -1,11 +1,10 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Text.Json.Serialization;
 using System.Windows.Media;
 using WindowsShortcutFactory;
 using File = System.IO.File;
-using StickyHomeworks;
 
 namespace StickyHomeworks.Models;
 
@@ -31,17 +30,19 @@ public class Settings : ObservableRecipient
     private double _windowY = 0;
     private double _windowWidth = 400;
     private double _windowHeight = 800;
-    private bool _lockwindow = false;
     private bool _isBottom = true;
-    private bool _backupst = true;
-    private bool _writbackup = true;
-    private bool _clean = true;
-    private bool _lsclearances = false;
-    private bool _recover = false;
     private string _title = "作业";
     private double _maxPanelWidth = 350;
     private bool _isDebugShowInTaskBar = false;
     private ObservableCollection<Color> _savedColors = new();
+    private UpdateChannel _updateChannel = UpdateChannel.Release; // 默认使用Release通道
+    
+    // 添加缺失的属性定义
+    private bool _lockwindow = false;
+    private bool _lsclearances = false;
+    private bool _backupst = false;
+    private bool _recover = false;
+    private bool _writbackup = false;
 
     public double WindowX
     {
@@ -117,7 +118,7 @@ public class Settings : ObservableRecipient
             }
         }
     }
-    
+
     public bool IsBottom
     {
         get => _isBottom;
@@ -129,31 +130,6 @@ public class Settings : ObservableRecipient
         }
     }
 
-    public bool Recover
-    {
-        get => _recover;
-        set
-        {
-            if (value == _recover) return;
-            _recover = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public bool Lockwindow
-    {
-        get => _lockwindow;
-        set
-        {
-            if (value == _lockwindow) return;
-            _lockwindow = value;
-            OnPropertyChanged();
-        
-        }
-    }
-
-
-
     public string Title
     {
         get => _title;
@@ -161,42 +137,6 @@ public class Settings : ObservableRecipient
         {
             if (value == _title) return;
             _title = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public bool Writbackup
-    {
-        get => _backupst;
-        set
-        {
-            if (value == _backupst) return;
-            _backupst = value;
-            OnPropertyChanged();
-        }
-    }
-
-
-    public bool Backupst
-    {
-        get => _backupst;
-            set
-        {
-            if (value == _backupst) return;
-            _backupst = value;
-            OnPropertyChanged();
-
-        }
-    }
-
-
-    public bool lsclearances
-    {
-        get => _lsclearances;
-        set
-        {
-            if (value == _lsclearances) return;
-            _lsclearances = value;
             OnPropertyChanged();
         }
     }
@@ -428,4 +368,94 @@ public class Settings : ObservableRecipient
             OnPropertyChanged();
         }
     }
+
+    /// <summary>
+    /// 更新通道设置
+    /// </summary>
+    public UpdateChannel UpdateChannel
+    {
+        get => _updateChannel;
+        set
+        {
+            if (value == _updateChannel) return;
+            _updateChannel = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool Writbackup
+    {
+        get => _writbackup;
+        set
+        {
+            if (value == _writbackup) return;
+            _writbackup = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool Recover
+    {
+        get => _recover;
+        set
+        {
+            if (value == _recover) return;
+            _recover = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool Lockwindow
+    {
+        get => _lockwindow;
+        set
+        {
+            if (value == _lockwindow) return;
+            _lockwindow = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool lsclearances
+    {
+        get => _lsclearances;
+        set
+        {
+            if (value == _lsclearances) return;
+            _lsclearances = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool Backupst
+    {
+        get => _backupst;
+        set
+        {
+            if (value == _backupst) return;
+            _backupst = value;
+            OnPropertyChanged();
+        }
+    }
+}
+
+/// <summary>
+/// 更新通道枚举
+/// </summary>
+public enum UpdateChannel
+{
+    /// <summary>
+    /// 稳定版更新通道（仅包含正式发布版本）
+    /// </summary>
+    Release,
+
+    /// <summary>
+    /// 预发布更新通道（包含预发布版本和正式发布版本）
+    /// </summary>
+    PreRelease,
+
+    /// <summary>
+    /// 开发版更新通道（包含每夜构建、预发布版本和正式发布版本）
+    /// </summary>
+    Nightly
 }

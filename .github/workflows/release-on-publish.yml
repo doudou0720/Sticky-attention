@@ -1,0 +1,70 @@
+name: Build Release on Publish
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build release for'
+        required: true
+
+jobs:
+  build-release:
+    runs-on: windows-latest
+    
+    strategy:
+      matrix:
+        runtime: [win-x64, win-x86]
+        selfContained: [true, false]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.release.tag_name || github.event.inputs.tag }}
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Get version from tag
+      id: version
+      run: |
+        $tag = "${{ github.event.release.tag_name || github.event.inputs.tag }}"
+        echo "tag=$tag" >> $GITHUB_OUTPUT
+      shell: pwsh
+
+    - name: Install dependencies
+      run: dotnet restore
+
+    - name: Build project
+      run: |
+        $suffix = ""
+        if ($env:selfContained -eq "false") {
+          $suffix = "-no-runtime"
+        }
+        
+        dotnet publish StickyHomeworks/StickyHomeworks.csproj -c Release -r ${{ matrix.runtime }} --self-contained ${{ matrix.selfContained }} -p:PublishSingleFile=true -o ./publish-${{ matrix.runtime }}${suffix}/
+
+    - name: Create release archives
+      run: |
+        $suffix = ""
+        if ($env:selfContained -eq "false") {
+          $suffix = "-no-runtime"
+        }
+        
+        cd publish-${{ matrix.runtime }}${suffix}
+        Compress-Archive -Path * -DestinationPath ../sticky-attentions-forked-${{ steps.version.outputs.tag }}-${{ matrix.runtime }}${suffix}.zip
+      shell: pwsh
+
+    - name: Upload assets to release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.version.outputs.tag }}
+        files: |
+          sticky-attentions-forked-${{ steps.version.outputs.tag }}-*.zip
+        prerelease: ${{ github.event.release.prerelease || false }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

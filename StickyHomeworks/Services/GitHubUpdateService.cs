@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using StickyHomeworks.Models;
 
 namespace StickyHomeworks.Services;
 
@@ -45,11 +46,13 @@ public class GitHubReleaseAsset
 
 public class GitHubUpdateService
 {
-    private const string GitHubApiBaseUrl = "https://api.github.com/repos/doudou0720/Sticky-attention/releases";
+    private const string GitHubApiBaseUrl = "https://api.github.com/repos/Sticky-attention/Sticky-attention/releases";
     private readonly HttpClient _httpClient;
+    private readonly Settings _settings;
 
-    public GitHubUpdateService()
+    public GitHubUpdateService(Settings settings)
     {
+        _settings = settings;
         _httpClient = new HttpClient();
         _httpClient.DefaultRequestHeaders.Add("User-Agent", "StickyHomeworks-Update-Checker");
     }
@@ -67,30 +70,24 @@ public class GitHubUpdateService
             if (publishedReleases.Count == 0)
                 return null;
 
-            // 返回最新的正式版本或预发布版本（取决于用户设置）
-            return publishedReleases.OrderByDescending(r => r.PublishedAt).FirstOrDefault();
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    public async Task<GitHubRelease?> GetLatestStableReleaseAsync()
-    {
-        try
-        {
-            var releases = await _httpClient.GetFromJsonAsync<GitHubRelease[]>(GitHubApiBaseUrl);
-            if (releases == null || releases.Length == 0)
-                return null;
-
-            // 过滤掉草稿和预发布版本
-            var stableReleases = releases.Where(r => !r.Draft && !r.Prerelease).ToList();
-            if (stableReleases.Count == 0)
-                return null;
-
-            // 返回最新的稳定版本
-            return stableReleases.OrderByDescending(r => r.PublishedAt).FirstOrDefault();
+            // 根据用户选择的更新通道返回相应的版本
+            switch (_settings.UpdateChannel)
+            {
+                case UpdateChannel.Nightly:
+                    // Nightly通道：返回最新的版本（包括nightly、pre-release和release）
+                    return publishedReleases.OrderByDescending(r => r.PublishedAt).FirstOrDefault();
+                    
+                case UpdateChannel.PreRelease:
+                    // PreRelease通道：返回最新的预发布版本或稳定版本
+                    var preReleaseOrStable = publishedReleases.Where(r => r.Prerelease || !r.Prerelease).ToList();
+                    return preReleaseOrStable.OrderByDescending(r => r.PublishedAt).FirstOrDefault();
+                    
+                case UpdateChannel.Release:
+                default:
+                    // Release通道：只返回最新的稳定版本
+                    var stableReleases = publishedReleases.Where(r => !r.Prerelease).ToList();
+                    return stableReleases.OrderByDescending(r => r.PublishedAt).FirstOrDefault();
+            }
         }
         catch
         {
