@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         runtime: [win-x64, win-x86]
-        selfContained: [true, false]
+        selfContained: [true]
     
     steps:
     - name: Checkout code
