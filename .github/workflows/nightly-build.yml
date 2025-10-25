@@ -29,14 +29,19 @@ jobs:
     - name: Install dependencies
       run: dotnet restore
 
+    - name: Calculate suffix
+      id: suffix
+      run: |
+        if [ "${{ matrix.selfContained }}" = "false" ]; then
+          echo "suffix=-no-runtime" >> $GITHUB_OUTPUT
+        else
+          echo "suffix=" >> $GITHUB_OUTPUT
+        fi
+      shell: bash
+
     - name: Build project
       run: |
-        $suffix = ""
-        if ($env:selfContained -eq "false") {
-          $suffix = "-no-runtime"
-        }
-        
-        dotnet publish StickyHomeworks/StickyHomeworks.csproj -c Release -r ${{ matrix.runtime }} --self-contained ${{ matrix.selfContained }} -p:PublishSingleFile=true -o ./publish-${{ matrix.runtime }}${suffix}/
+        dotnet publish StickyHomeworks/StickyHomeworks.csproj -c Release -r ${{ matrix.runtime }} --self-contained ${{ matrix.selfContained }} -p:PublishSingleFile=true -o ./publish-${{ matrix.runtime }}${{ steps.suffix.outputs.suffix }}/
 
     - name: Get version info
       id: version
@@ -45,19 +50,22 @@ jobs:
         echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
       shell: bash
 
+    - name: List files before archive
+      run: dir
+      shell: cmd
+
     - name: Create release archives
       run: |
-        $suffix = ""
-        if ($env:selfContained -eq "false") {
-          $suffix = "-no-runtime"
-        }
-        
-        cd publish-${{ matrix.runtime }}${suffix}
-        Compress-Archive -Path * -DestinationPath ../sticky-attentions-forked-nightly-${{ matrix.runtime }}${suffix}-${{ steps.version.outputs.date }}-${{ steps.version.outputs.sha_short }}.zip
+        cd publish-${{ matrix.runtime }}${{ steps.suffix.outputs.suffix }}
+        Compress-Archive -Path * -DestinationPath ../sticky-attentions-forked-nightly-${{ matrix.runtime }}${{ steps.suffix.outputs.suffix }}-${{ steps.version.outputs.date }}-${{ steps.version.outputs.sha_short }}.zip
       shell: pwsh
+
+    - name: List files after archive
+      run: dir *.zip
+      shell: cmd
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: sticky-attentions-forked-nightly-${{ matrix.runtime }}${suffix}-${{ steps.version.outputs.date }}-${{ steps.version.outputs.sha_short }}
-        path: sticky-attentions-forked-nightly-${{ matrix.runtime }}${suffix}-${{ steps.version.outputs.date }}-${{ steps.version.outputs.sha_short }}.zip
+        name: sticky-attentions-forked-nightly-${{ matrix.runtime }}${{ steps.suffix.outputs.suffix }}-${{ steps.version.outputs.date }}-${{ steps.version.outputs.sha_short }}
+        path: sticky-attentions-forked-nightly-${{ matrix.runtime }}${{ steps.suffix.outputs.suffix }}-${{ steps.version.outputs.date }}-${{ steps.version.outputs.sha_short }}.zip
