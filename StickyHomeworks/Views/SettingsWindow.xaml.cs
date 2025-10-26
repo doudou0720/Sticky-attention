@@ -23,6 +23,7 @@ using System.Windows.Media;
 using System.Net.Http;
 using static StickyHomeworks.App;
 using System.Threading.Tasks;
+using MessageBox = System.Windows.MessageBox;
 
 namespace StickyHomeworks.Views;
 /// <summary>
@@ -96,7 +97,19 @@ public partial class SettingsWindow : MyWindow
 
     private void SettingsOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-
+        // 检查是否是需要重启的设置项
+        if (e.PropertyName == nameof(Settings.HttpServerEnabled) || 
+            e.PropertyName == nameof(Settings.GrpcEnabled) ||
+            e.PropertyName == nameof(Settings.HttpServerPort) ||
+            e.PropertyName == nameof(Settings.GrpcPort))
+        {
+            // 显示重启提示
+            MessageBox.Show(
+                "此设置将在下次启动时生效，请重启应用程序以应用更改。", 
+                "需要重启", 
+                MessageBoxButton.OK, 
+                MessageBoxImage.Information);
+        }
     }
 
 

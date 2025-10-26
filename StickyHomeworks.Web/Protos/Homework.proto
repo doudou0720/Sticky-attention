@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+option csharp_namespace = "StickyHomeworks.Web.Protos";
+
+package homework;
+
+// 作业服务定义
+service HomeworkService {
+  // 获取所有作业
+  rpc GetAllHomeworks (Empty) returns (HomeworkListReply);
+  
+  // 根据ID获取作业
+  rpc GetHomework (GetHomeworkRequest) returns (HomeworkReply);
+  
+  // 创建作业
+  rpc CreateHomework (CreateHomeworkRequest) returns (HomeworkReply);
+  
+  // 更新作业
+  rpc UpdateHomework (UpdateHomeworkRequest) returns (HomeworkReply);
+  
+  // 删除作业
+  rpc DeleteHomework (DeleteHomeworkRequest) returns (OperationReply);
+}
+
+// 空请求
+message Empty {}
+
+// 作业信息
+message HomeworkModel {
+  int32 id = 1;
+  string subject = 2;
+  string tags = 3;
+  string content = 4;
+  string end_time = 5;
+}
+
+// 获取作业请求
+message GetHomeworkRequest {
+  int32 id = 1;
+}
+
+// 创建作业请求
+message CreateHomeworkRequest {
+  string subject = 1;
+  string tags = 2;
+  string content = 3;
+  string end_time = 4;
+}
+
+// 更新作业请求
+message UpdateHomeworkRequest {
+  int32 id = 1;
+  string subject = 2;
+  string tags = 3;
+  string content = 4;
+  string end_time = 5;
+}
+
+// 删除作业请求
+message DeleteHomeworkRequest {
+  int32 id = 1;
+}
+
+// 作业列表回复
+message HomeworkListReply {
+  repeated HomeworkModel homeworks = 1;
+  string message = 2;
+  bool success = 3;
+}
+
+// 作业回复
+message HomeworkReply {
+  HomeworkModel homework = 1;
+  string message = 2;
+  bool success = 3;
+}
+
+// 操作回复
+message OperationReply {
+  string message = 1;
+  bool success = 2;
+}

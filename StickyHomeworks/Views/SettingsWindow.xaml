@@ -206,6 +206,38 @@
                 <TextBlock Text="正在开发/测试的不稳定功能，可能会出现Bug等问题，请谨慎使用。" TextWrapping="Wrap"
                            Margin="0 0 0 16"/>
 
+                <!-- 启用HTTP服务器 -->
+                <ely:SettingsCard IconGlyph="Web" Header="启用HTTP服务器"
+                                  Description="启动本地HTTP服务器以提供Web界面（重启后生效）。"
+                                  IsOn="{Binding Settings.HttpServerEnabled, Mode=TwoWay}" />
+                <!-- HTTP服务器端口 -->
+                <ely:SettingsCard IconGlyph="Network" Header="HTTP服务器端口"
+                                  Description="设置HTTP服务器监听的端口号（重启后生效）。">
+                    <ely:SettingsCard.Switcher>
+                        <ely:NumbericTextBox MinWidth="100" 
+                                             Style="{StaticResource MaterialDesignTextBox}"
+                                             Text="{Binding Settings.HttpServerPort}"
+                                             MinValue="1"
+                                             MaxValue="65535"
+                                             materialDesign:TextFieldAssist.SuffixText="端口"/>
+                    </ely:SettingsCard.Switcher>
+                </ely:SettingsCard>
+                <!-- 启用gRPC服务 -->
+                <ely:SettingsCard IconGlyph="Grpc" Header="启用gRPC服务"
+                                  Description="启动gRPC服务以支持远程过程调用（重启后生效）。"
+                                  IsOn="{Binding Settings.GrpcEnabled, Mode=TwoWay}" />
+                <!-- gRPC服务端口 -->
+                <ely:SettingsCard IconGlyph="Network" Header="gRPC服务端口"
+                                  Description="设置gRPC服务监听的端口号（重启后生效）。">
+                    <ely:SettingsCard.Switcher>
+                        <ely:NumbericTextBox MinWidth="100" 
+                                             Style="{StaticResource MaterialDesignTextBox}"
+                                             Text="{Binding Settings.GrpcPort}"
+                                             MinValue="1"
+                                             MaxValue="65535"
+                                             materialDesign:TextFieldAssist.SuffixText="端口"/>
+                    </ely:SettingsCard.Switcher>
+                </ely:SettingsCard>
 
             </StackPanel>
         </ScrollViewer>
@@ -318,10 +350,13 @@
                                     </ely:SettingsCard.Switcher>
                                 </ely:SettingsCard>
                                 
+                                <Separator Margin="0 16 0 8"/>
+
                                 <ely:IconText Kind="LedOn" Text="其他" Margin="0 0 0 8"/>
+                                <!-- 窗口置底 -->
                                 <ely:SettingsCard IconGlyph="LayersOutline" Header="窗口置底"
-                                 Description="将窗口置于底端。"
-                                  IsOn="{Binding Settings.IsBottom, Mode=TwoWay}" />
+                                                  Description="将窗口置于底端。"
+                                                  IsOn="{Binding Settings.IsBottom, Mode=TwoWay}" />
 
                             </StackPanel>
                         </ScrollViewer>

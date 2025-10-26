@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.Hosting;
 using StickyHomeworks.Models;
 using System.ComponentModel;
@@ -13,6 +13,7 @@ public class SettingsService : ObservableRecipient, IHostedService
 {
     private Settings _settings = new();
     private System.Timers.Timer? _saveTimer;
+    private bool _restartRequired = false;
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
@@ -29,6 +30,13 @@ public class SettingsService : ObservableRecipient, IHostedService
             SaveSettings();
             _saveTimer?.Dispose();
             _saveTimer = null;
+            
+            // 如果需要重启，提示用户
+            if (_restartRequired)
+            {
+                _restartRequired = false;
+                // 可以在这里添加重启提示逻辑
+            }
         };
         _saveTimer.Start();
     }
@@ -43,6 +51,15 @@ public class SettingsService : ObservableRecipient, IHostedService
 
     private void OnOnSettingsChanged(object? sender, PropertyChangedEventArgs e)
     {
+        // 检查是否是需要重启的设置项
+        if (e.PropertyName == nameof(Settings.HttpServerEnabled) || 
+            e.PropertyName == nameof(Settings.GrpcEnabled) ||
+            e.PropertyName == nameof(Settings.HttpServerPort) ||
+            e.PropertyName == nameof(Settings.GrpcPort))
+        {
+            _restartRequired = true;
+        }
+        
         ScheduleSaveSettings();
     }
 

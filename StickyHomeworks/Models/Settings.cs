@@ -43,6 +43,13 @@ public class Settings : ObservableRecipient
     private bool _backupst = false;
     private bool _recover = false;
     private bool _writbackup = false;
+    
+    // 添加HTTP服务器和gRPC启用选项
+    private bool _httpServerEnabled = false;
+    private bool _grpcEnabled = false;
+    // 添加HTTP服务器和gRPC端口设置
+    private int _httpServerPort = 5000;
+    private int _grpcPort = 5001;
 
     public double WindowX
     {
@@ -84,6 +91,50 @@ public class Settings : ObservableRecipient
         {
             if (value == _windowHeight) return;
             _windowHeight = value;
+            OnPropertyChanged();
+        }
+    }
+    
+    public bool HttpServerEnabled
+    {
+        get => _httpServerEnabled;
+        set
+        {
+            if (value == _httpServerEnabled) return;
+            _httpServerEnabled = value;
+            OnPropertyChanged();
+        }
+    }
+    
+    public bool GrpcEnabled
+    {
+        get => _grpcEnabled;
+        set
+        {
+            if (value == _grpcEnabled) return;
+            _grpcEnabled = value;
+            OnPropertyChanged();
+        }
+    }
+    
+    public int HttpServerPort
+    {
+        get => _httpServerPort;
+        set
+        {
+            if (value == _httpServerPort) return;
+            _httpServerPort = value;
+            OnPropertyChanged();
+        }
+    }
+    
+    public int GrpcPort
+    {
+        get => _grpcPort;
+        set
+        {
+            if (value == _grpcPort) return;
+            _grpcPort = value;
             OnPropertyChanged();
         }
     }
