@@ -159,7 +159,10 @@ public partial class HomeworkEditWindow : Window, INotifyPropertyChanged
     {
         ViewModel.FontFamilies =
             new ObservableCollection<FontFamily>(from i in Fonts.SystemFontFamilies orderby i.ToString() select i)
-                { (FontFamily)FindResource("MiSans") };
+                { 
+                    (FontFamily)FindResource("LXGWWenKaiLite"),
+                    (FontFamily)FindResource("LXGWWenKaiMonoLite")
+                };
         base.OnInitialized(e);
     }
 

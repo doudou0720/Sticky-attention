@@ -17,11 +17,12 @@
 
   <ItemGroup>
 	<None Remove="Assets\Fonts\HarmonyOS_Sans_SC_Black.ttf" />
-	<None Remove="Assets\Fonts\MiSans-Bold.ttf" />
-	<None Remove="Assets\Fonts\MiSans-Light.ttf" />
-	<None Remove="Assets\Fonts\MiSans-Medium.ttf" />
-	<None Remove="Assets\Fonts\MiSans-Regular.ttf" />
-	<None Remove="Assets\Fonts\MiSans-Thin.ttf" />
+	<None Remove="Assets\Fonts\LXGWWenKaiLite-Light.ttf" />
+	<None Remove="Assets\Fonts\LXGWWenKaiLite-Medium.ttf" />
+	<None Remove="Assets\Fonts\LXGWWenKaiLite-Regular.ttf" />
+	<None Remove="Assets\Fonts\LXGWWenKaiMonoLite-Light.ttf" />
+	<None Remove="Assets\Fonts\LXGWWenKaiMonoLite-Medium.ttf" />
+	<None Remove="Assets\Fonts\LXGWWenKaiMonoLite-Regular.ttf" />
   </ItemGroup>
 
   <ItemGroup>
@@ -36,11 +37,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="Assets\Fonts\MiSans-Bold.ttf" />
-    <Resource Include="Assets\Fonts\MiSans-Light.ttf" />
-    <Resource Include="Assets\Fonts\MiSans-Medium.ttf" />
-    <Resource Include="Assets\Fonts\MiSans-Regular.ttf" />
-    <Resource Include="Assets\Fonts\MiSans-Thin.ttf" />
+    <Resource Include="Assets\Fonts\LXGWWenKaiLite-Light.ttf" />
+    <Resource Include="Assets\Fonts\LXGWWenKaiLite-Medium.ttf" />
+    <Resource Include="Assets\Fonts\LXGWWenKaiLite-Regular.ttf" />
+    <Resource Include="Assets\Fonts\LXGWWenKaiMonoLite-Light.ttf" />
+    <Resource Include="Assets\Fonts\LXGWWenKaiMonoLite-Medium.ttf" />
+    <Resource Include="Assets\Fonts\LXGWWenKaiMonoLite-Regular.ttf" />
   </ItemGroup>
 
 </Project>

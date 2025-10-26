@@ -11,7 +11,7 @@
                    d:DataContext="{d:DesignInstance views:SettingsWindow}"
                    TextElement.Foreground="{DynamicResource MaterialDesignBody}"
                    Background="{DynamicResource MaterialDesignPaper}"
-                   FontFamily="{StaticResource MiSans}"
+                   FontFamily="{StaticResource LXGWWenKaiLite}"
                    TextElement.FontWeight="Regular"
                    TextElement.FontSize="14"
                    TextOptions.TextFormattingMode="Ideal" 
@@ -185,7 +185,7 @@
                 <models:ContributionLabel Title="mdWpf-notifyicon"
                                           License="The Code Project Open License (CPOL) 1.02"
                                           Website="https://github.com/hardcodet/mdWpf-notifyicon" />
-                <models:ContributionLabel Title="MiSans" License="-"
+                <models:ContributionLabel Title="霞鹜文楷 轻便版" License="OFL 1.1"
                                           Website="https://hyperos.mi.com/font/download" />
                 <models:ContributionLabel Title="MVVM Toolkit"
                                           Website="https://github.com/CommunityToolkit/dotnet"
@@ -614,7 +614,7 @@
                                        IsSelectionEnabled="False"
                                        PreviewMouseWheel="UIElement_OnPreviewMouseWheel"
                                        ContextMenu="{x:Null}">
-                                    <FlowDocument FontFamily="{StaticResource MiSans}">
+                                    <FlowDocument FontFamily="{StaticResource LXGWWenKaiLite}">
                                         <Paragraph Style="{StaticResource MarkdownHeadline1Style}">
                                             更新日志
                                         </Paragraph>
@@ -804,7 +804,7 @@
                                                           IsSelectionEnabled="False"
                                                           PreviewMouseWheel="UIElement_OnPreviewMouseWheel"
                                                           ContextMenu="{x:Null}">
-                                    <FlowDocument FontFamily="{StaticResource MiSans}">
+                                    <FlowDocument FontFamily="{StaticResource LXGWWenKaiLite}">
                                         <Paragraph Style="{StaticResource MarkdownHeadline1Style}">
                                             关于本应用
                                         </Paragraph>
@@ -813,7 +813,7 @@
                                             <LineBreak/>
                                             界面主题和部分控件使用了WPF 框架。
                                             <LineBreak/>
-                                            应用字体使用了小米开源的MiSans。
+                                            应用字体使用了开源的霞鹜文楷 Lite Edition。
                                             <LineBreak/>
                                             协助本应用测试的同学。
                                             <LineBreak/>
@@ -842,7 +842,8 @@
                                         </Paragraph>
 
                                         <Paragraph Foreground="red">
-                                            永远爱中国！
+                                            此版本为Fork 版本，请勿把漏洞提交到原始项目！
+                                            <!-- 永远爱中国！ (好尬...) -->
                                         </Paragraph>
 
                                     </FlowDocument>
