@@ -65,7 +65,14 @@ public class SettingsService : ObservableRecipient, IHostedService
 
     public async Task LoadSettingsSafeAsync()
     {
-        string settingsPath = "./Settings.json";
+        // 确保.config目录存在
+        string configDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".config");
+        if (!Directory.Exists(configDirectory))
+        {
+            Directory.CreateDirectory(configDirectory);
+        }
+        
+        string settingsPath = Path.Combine(configDirectory, "Settings.json");
         if (!File.Exists(settingsPath))
         {
             // 如果文件不存在，创建默认的 Settings.json 文件
@@ -110,7 +117,14 @@ public class SettingsService : ObservableRecipient, IHostedService
 
     public void SaveSettings()
     {
-        var filePath = "./Settings.json";
+        // 确保.config目录存在
+        string configDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".config");
+        if (!Directory.Exists(configDirectory))
+        {
+            Directory.CreateDirectory(configDirectory);
+        }
+        
+        var filePath = Path.Combine(configDirectory, "Settings.json");
         var settings = Settings;
 
         try
@@ -152,8 +166,16 @@ public class SettingsService : ObservableRecipient, IHostedService
 
     public async Task SaveSettingsAsync()
     {
+        // 确保.config目录存在
+        string configDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".config");
+        if (!Directory.Exists(configDirectory))
+        {
+            Directory.CreateDirectory(configDirectory);
+        }
+        
         var json = JsonSerializer.Serialize(Settings);
-        await File.WriteAllTextAsync("./Settings.json", json);
+        var filePath = Path.Combine(configDirectory, "Settings.json");
+        await File.WriteAllTextAsync(filePath, json);
     }
 
     public Settings Settings

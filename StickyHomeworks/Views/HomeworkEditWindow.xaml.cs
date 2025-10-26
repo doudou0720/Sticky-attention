@@ -1,4 +1,4 @@
-﻿using ElysiaFramework;
+using ElysiaFramework;
 using StickyHomeworks.Services;
 using StickyHomeworks.ViewModels;
 using System.Collections.ObjectModel;
@@ -309,11 +309,11 @@ public partial class HomeworkEditWindow : Window, INotifyPropertyChanged
                 // 定义备份文件夹路径
                 string folderName = "SA-AutoBackup";
                 string settings_folderName = "Settings-Backups";
-                string currentDirectory = System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments);
+                string currentDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".config");
                 string backupBaseDirectory = Path.Combine(currentDirectory, folderName, settings_folderName);
 
                 // 源文件路径
-                string sourceFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Settings.json");
+                string sourceFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".config", "Settings.json");
 
                 // 确保源文件存在
                 if (!File.Exists(sourceFilePath))

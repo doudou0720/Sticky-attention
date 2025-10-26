@@ -1,4 +1,4 @@
-﻿using ElysiaFramework;
+using ElysiaFramework;
 using MaterialDesignThemes.Wpf;
 using StickyHomeworks.Models;
 using StickyHomeworks.Services;
@@ -120,7 +120,7 @@ namespace StickyHomeworks
                 $"");
             //删除那一坨备份
             string folderName = "SA-AutoBackup";
-            string currentDirectory = System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments);
+            string currentDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".config");
             string directoryPath = Path.Combine(currentDirectory, folderName); // 备份文件夹
             if (!Directory.Exists(directoryPath))
             {
@@ -140,7 +140,7 @@ namespace StickyHomeworks
 
 
 
-            string json = File.ReadAllText("Settings.json");
+            string json = File.ReadAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".config", "Settings.json"));
             dynamic settings = Newtonsoft.Json.JsonConvert.DeserializeObject(json);
 
             // 获取设置中的窗口位置
@@ -857,9 +857,9 @@ namespace StickyHomeworks
 
             // 文件夹名称
             string folderName = "SA-AutoBackup";
-            // 使用 “yyyy-MM-dd” 格式作为文件夹名称，以每天创建一个新文件夹
+            // 使用 "yyyy-MM-dd" 格式作为文件夹名称，以每天创建一个新文件夹
             string cfolderName = System.DateTime.Now.ToString("yyyy-MM-dd");
-            string currentDirectory = System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments);
+            string currentDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".config");
 
             bool hasErrorOccurred = false;
             try
@@ -1177,11 +1177,11 @@ namespace StickyHomeworks
                     // 定义备份文件夹路径
                     string folderName = "SA-AutoBackup";
                     string settings_folderName = "Settings-Backups";
-                    string currentDirectory = System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments);
+                    string currentDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".config");
                     string backupBaseDirectory = Path.Combine(currentDirectory, folderName, settings_folderName);
 
                     // 源文件路径
-                    string sourceFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Settings.json");
+                    string sourceFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".config", "Settings.json");
 
                     // 确保源文件存在
                     if (!File.Exists(sourceFilePath))

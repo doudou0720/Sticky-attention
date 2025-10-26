@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Hosting;
 using StickyHomeworks.Models;
 using System.ComponentModel;
 using System.IO;
@@ -31,11 +31,19 @@ public class ProfileService : IHostedService, INotifyPropertyChanged
 
     public void LoadProfile()
     {
-        if (!File.Exists("./Profile.json"))
+        // 确保.config目录存在
+        string configDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".config");
+        if (!Directory.Exists(configDirectory))
+        {
+            Directory.CreateDirectory(configDirectory);
+        }
+        
+        string profilePath = Path.Combine(configDirectory, "Profile.json");
+        if (!File.Exists(profilePath))
         {
             return;
         }
-        var json = File.ReadAllText("./Profile.json");
+        var json = File.ReadAllText(profilePath);
         var r = JsonSerializer.Deserialize<Profile>(json);
         if (r != null)
         {
@@ -56,7 +64,15 @@ public class ProfileService : IHostedService, INotifyPropertyChanged
 
     public void SaveProfile()
     {
-        File.WriteAllText("./Profile.json", JsonSerializer.Serialize<Profile>(Profile));
+        // 确保.config目录存在
+        string configDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".config");
+        if (!Directory.Exists(configDirectory))
+        {
+            Directory.CreateDirectory(configDirectory);
+        }
+        
+        string profilePath = Path.Combine(configDirectory, "Profile.json");
+        File.WriteAllText(profilePath, JsonSerializer.Serialize<Profile>(Profile));
         ProfileSaved?.Invoke(this, EventArgs.Empty);
     }
 

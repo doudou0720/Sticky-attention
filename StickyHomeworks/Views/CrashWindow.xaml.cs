@@ -1,4 +1,4 @@
-﻿using ElysiaFramework.Controls;
+using ElysiaFramework.Controls;
 using System.ComponentModel;
 using System.IO;
 using System.Windows;
@@ -113,10 +113,10 @@ public partial class CrashWindow : MyWindow
     {
         string folderName = "SA-AutoBackup";
         string settings_folderName = "Settings-Backups";
-        string currentDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        string currentDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".config");
         string backupDirectory = Path.Combine(currentDirectory, folderName, settings_folderName);
 
-        string sourceFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Settings.json");
+        string sourceFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".config", "Settings.json");
 
         // 检查备份目录是否存在
         if (!Directory.Exists(backupDirectory))
