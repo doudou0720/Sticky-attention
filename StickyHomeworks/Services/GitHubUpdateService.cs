@@ -74,8 +74,8 @@ public class GitHubUpdateService
             switch (_settings.UpdateChannel)
             {
                 case UpdateChannel.Nightly:
-                    // Nightly通道：返回最新的版本（包括nightly、pre-release和release）
-                    return publishedReleases.OrderByDescending(r => r.PublishedAt).FirstOrDefault();
+                    // 暂时禁用Nightly通道，将其视为PreRelease通道
+                    goto case UpdateChannel.PreRelease;
                     
                 case UpdateChannel.PreRelease:
                     // PreRelease通道：返回最新的预发布版本或稳定版本
@@ -88,6 +88,28 @@ public class GitHubUpdateService
                     var stableReleases = publishedReleases.Where(r => !r.Prerelease).ToList();
                     return stableReleases.OrderByDescending(r => r.PublishedAt).FirstOrDefault();
             }
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public async Task<GitHubRelease?> GetLatestStableReleaseAsync()
+    {
+        try
+        {
+            var releases = await _httpClient.GetFromJsonAsync<GitHubRelease[]>(GitHubApiBaseUrl);
+            if (releases == null || releases.Length == 0)
+                return null;
+
+            // 过滤掉草稿和预发布版本
+            var stableReleases = releases.Where(r => !r.Draft && !r.Prerelease).ToList();
+            if (stableReleases.Count == 0)
+                return null;
+
+            // 返回最新的稳定版本
+            return stableReleases.OrderByDescending(r => r.PublishedAt).FirstOrDefault();
         }
         catch
         {
