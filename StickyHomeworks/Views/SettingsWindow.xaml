@@ -223,7 +223,7 @@
                     </ely:SettingsCard.Switcher>
                 </ely:SettingsCard>
                 <!-- 启用gRPC服务 -->
-                <ely:SettingsCard IconGlyph="Grpc" Header="启用gRPC服务"
+                <ely:SettingsCard IconGlyph="ArrowRightCircle" Header="启用gRPC服务"
                                   Description="启动gRPC服务以支持远程过程调用（重启后生效）。"
                                   IsOn="{Binding Settings.GrpcEnabled, Mode=TwoWay}" />
                 <!-- gRPC服务端口 -->

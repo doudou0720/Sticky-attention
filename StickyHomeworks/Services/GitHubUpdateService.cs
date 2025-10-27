@@ -179,6 +179,58 @@ public class GitHubUpdateService
         return (version, "");
     }
 
+    public string FormatVersionDisplay(string versionTag)
+    {
+        // 移除版本号前的 "v" 字符（如果存在）
+        if (versionTag.StartsWith("v"))
+            versionTag = versionTag.Substring(1);
+
+        // 分离主版本号和预发布标签
+        var parts = ParseVersionWithPreRelease(versionTag);
+        
+        if (string.IsNullOrEmpty(parts.preRelease))
+        {
+            // 稳定版本
+            return $"版本 {parts.mainVersion}";
+        }
+        else
+        {
+            // 预发布版本
+            var preReleaseParts = parts.preRelease.Split('.');
+            if (preReleaseParts.Length >= 2)
+            {
+                // 格式如: rc.0 或 rc.0.1
+                var type = preReleaseParts[0]; // rc
+                var candidate = preReleaseParts[1]; // 0
+                
+                string typeText = type switch
+                {
+                    "alpha" => "Alpha",
+                    "beta" => "Beta",
+                    "rc" => "候选版本",
+                    _ => type
+                };
+                
+                if (preReleaseParts.Length >= 3 && !string.IsNullOrEmpty(preReleaseParts[2]))
+                {
+                    // 包含错误修复版本号
+                    var fix = preReleaseParts[2]; // 1
+                    return $"版本 {parts.mainVersion} {typeText} {candidate} 错误修复版本 {fix}";
+                }
+                else
+                {
+                    // 不包含错误修复版本号
+                    return $"版本 {parts.mainVersion} {typeText} {candidate}";
+                }
+            }
+            else
+            {
+                // 其他格式的预发布版本
+                return $"版本 {parts.mainVersion} ({parts.preRelease})";
+            }
+        }
+    }
+
     public string GetCurrentVersion()
     {
         // 获取当前应用版本
@@ -204,5 +256,31 @@ public class GitHubUpdateService
         }
         
         return originalUrl;
+    }
+    
+    public string FindAppropriateAsset(List<GitHubReleaseAsset> assets)
+    {
+        // 根据当前系统架构选择合适的下载资源
+        var architecture = Environment.Is64BitOperatingSystem ? "win-x64" : "win-x86";
+        
+        // 根据是否需要包含运行时来选择资产
+        // 优先选择包含运行时的版本（自包含版本）
+        var assetWithRuntime = assets.FirstOrDefault(a => 
+            a.Name.Contains($"sticky-attentions-forked") &&
+            a.Name.Contains(architecture) && 
+            !a.Name.Contains("no-runtime") && 
+            a.Name.EndsWith(".zip"));
+        
+        if (assetWithRuntime != null)
+            return assetWithRuntime.BrowserDownloadUrl;
+        
+        // 如果没有包含运行时的版本，则选择不包含运行时的版本
+        var assetWithoutRuntime = assets.FirstOrDefault(a => 
+            a.Name.Contains($"sticky-attentions-forked") &&
+            a.Name.Contains(architecture) && 
+            a.Name.Contains("no-runtime") && 
+            a.Name.EndsWith(".zip"));
+        
+        return assetWithoutRuntime?.BrowserDownloadUrl ?? string.Empty;
     }
 }
