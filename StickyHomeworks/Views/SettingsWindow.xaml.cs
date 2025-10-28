@@ -341,8 +341,9 @@ public partial class SettingsWindow : MyWindow
 
     private void OpenGitHub_Click(object sender, RoutedEventArgs e)
     {
+        // Fork项目：原始仓库为Sticky-attention/Sticky-attention，此fork仓库为doudou0720/Sticky-attention
         // 要打开的URL
-        string url = "https://github.com/Sticky-attention/Sticky-attention/";
+        string url = "https://github.com/doudou0720/Sticky-attention/";
 
         // 使用默认浏览器打开URL
         try

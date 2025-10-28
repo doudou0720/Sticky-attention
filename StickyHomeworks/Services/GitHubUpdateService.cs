@@ -46,7 +46,9 @@ public class GitHubReleaseAsset
 
 public class GitHubUpdateService
 {
-    private const string GitHubApiBaseUrl = "https://api.github.com/repos/Sticky-attention/Sticky-attention/releases";
+    // Fork项目：原始仓库为Sticky-attention/Sticky-attention，此fork仓库为doudou0720/Sticky-attention
+    // 这是一个独立发行版，因此API指向fork仓库
+    private const string GitHubApiBaseUrl = "https://api.github.com/repos/doudou0720/Sticky-attention/releases";
     private readonly HttpClient _httpClient;
     private readonly Settings _settings;
 
