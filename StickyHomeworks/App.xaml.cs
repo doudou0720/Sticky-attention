@@ -1,4 +1,4 @@
-﻿using ClassIsland.Services;
+using ClassIsland.Services;
 using ElysiaFramework;
 using ElysiaFramework.Interfaces;
 using ElysiaFramework.Services;
@@ -30,6 +30,8 @@ namespace StickyHomeworks;
 public partial class App : AppEx
 {
     private static Mutex? Mutex;
+    
+    private Process? _webServiceProcess;
 
     private NotifyIcon _notifyIcon;
 
@@ -219,6 +221,9 @@ public partial class App : AppEx
 
         base.OnStartup(e);
 
+        // 启动Web服务进程
+        StartWebService();
+
         Host = Microsoft.Extensions.Hosting.Host.
             CreateDefaultBuilder().
             UseContentRoot(AppContext.BaseDirectory).
@@ -253,6 +258,60 @@ public partial class App : AppEx
             Visible = true,
             ContextMenuStrip = CreateContextMenu()
         };
+    }
+
+    private void StartWebService()
+    {
+        try
+        {
+            var settingsService = GetService<SettingsService>();
+            var settings = settingsService.Settings;
+
+            if (settings.HttpServerEnabled || settings.GrpcEnabled)
+            {
+                var webServicePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "StickyHomeworks.Web.exe");
+                if (File.Exists(webServicePath))
+                {
+                    var startInfo = new ProcessStartInfo
+                    {
+                        FileName = webServicePath,
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        CreateNoWindow = true,
+                        WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory
+                    };
+
+                    // 添加配置参数
+                    if (!settings.HttpServerEnabled)
+                        startInfo.ArgumentList.Add("--EnableHttpServer=false");
+                    
+                    if (!settings.GrpcEnabled)
+                        startInfo.ArgumentList.Add("--EnableGrpcService=false");
+                    
+                    if (settings.HttpServerPort != 5000)
+                        startInfo.ArgumentList.Add($"--HttpServerPort={settings.HttpServerPort}");
+                    
+                    if (settings.GrpcPort != 5001)
+                        startInfo.ArgumentList.Add($"--GrpcPort={settings.GrpcPort}");
+
+                    _webServiceProcess = Process.Start(startInfo);
+                    LogHelper.Info("Web service started successfully");
+                }
+                else
+                {
+                    LogHelper.Error("Web service executable not found: " + webServicePath);
+                }
+            }
+            else
+            {
+                LogHelper.Info("Both HTTP server and gRPC service are disabled, skipping web service startup");
+            }
+        }
+        catch (Exception ex)
+        {
+            LogHelper.Error("Failed to start web service: " + ex.Message);
+        }
     }
 
     // 创建托盘右键菜单
@@ -311,6 +370,22 @@ public partial class App : AppEx
 
     protected override void OnExit(ExitEventArgs e)
     {
+        // 关闭Web服务进程
+        if (_webServiceProcess != null && !_webServiceProcess.HasExited)
+        {
+            try
+            {
+                _webServiceProcess.Kill();
+                _webServiceProcess.WaitForExit(3000); // 等待最多3秒
+                _webServiceProcess.Dispose();
+                LogHelper.Info("Web service stopped");
+            }
+            catch (Exception ex)
+            {
+                LogHelper.Error("Error stopping web service: " + ex.Message);
+            }
+        }
+
         base.OnExit(e);
         _memoryUsageTimer?.Stop();
         _memoryUsageTimer?.Dispose();

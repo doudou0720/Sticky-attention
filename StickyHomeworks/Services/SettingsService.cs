@@ -35,7 +35,7 @@ public class SettingsService : ObservableRecipient, IHostedService
             if (_restartRequired)
             {
                 _restartRequired = false;
-                // 可以在这里添加重启提示逻辑
+                LogHelper.Info("设置已更改，某些功能需要重启应用程序才能生效。");
             }
         };
         _saveTimer.Start();
