@@ -331,20 +331,20 @@
                                 <ely:IconText Kind="Update" Text="更新设置" Margin="0 0 0 8"/>
                                 
                                 <!-- 更新通道 -->
-                                <ely:SettingsCard IconGlyph="SourceBranch" Header="更新通道"
-                                                  Description="选择您希望接收的更新类型。">
+                                <ely:SettingsCard IconGlyph="Update" Header="更新通道"
+                                                  Description="选择应用更新的版本通道">
                                     <ely:SettingsCard.Switcher>
                                         <ComboBox Foreground="{DynamicResource MaterialDesignBody}"
                                                   SelectedIndex="{Binding Settings.UpdateChannel}"
                                                   HorizontalContentAlignment="Left">
                                             <ComboBoxItem HorizontalContentAlignment="Left">
-                                                <ely:IconText Kind="SourceBranchCheck" Text="稳定版 (Release)" />
+                                                <TextBlock Text="稳定版" />
                                             </ComboBoxItem>
                                             <ComboBoxItem HorizontalContentAlignment="Left">
-                                                <ely:IconText Kind="SourceBranchRefresh" Text="预发布版 (Pre-release)" />
+                                                <TextBlock Text="预发布版" />
                                             </ComboBoxItem>
                                             <ComboBoxItem HorizontalContentAlignment="Left">
-                                                <ely:IconText Kind="SourceBranchSync" Text="开发版 (Nightly)" />
+                                                <TextBlock Text="开发版" />
                                             </ComboBoxItem>
                                         </ComboBox>
                                     </ely:SettingsCard.Switcher>
@@ -555,11 +555,19 @@
                                                            Description="取色时为亮度更接近此值的颜色赋予更高的权重，修改此值会影响到取色结果中整体颜色的亮度和准确性，请谨慎修改。（默认值：0.6）">
                                         <ely:SettingsCard.Switcher>
                                             <ely:NumbericTextBox MaxValue="1" MinValue="0" Width="150"
-                                                                      Foreground="{DynamicResource MaterialDesignBody}"
-                                                                      Style="{StaticResource MaterialDesignTextBox}"
-                                                                      Text="{Binding Settings.TargetLightValue, Mode=TwoWay, Converter={StaticResource IntToStringConverter}}"/>
+                                                                  Foreground="{DynamicResource MaterialDesignBody}"
+                                                                  Style="{StaticResource MaterialDesignTextBox}"
+                                                                  Text="{Binding Settings.TargetLightValue, Mode=TwoWay, Converter={StaticResource IntToStringConverter}}"/>
                                         </ely:SettingsCard.Switcher>
                                     </ely:SettingsCard>
+                                    <!-- 清理过期作业 -->
+                                    <ely:SettingsCard IconGlyph="Broom" Header="自动清理过期作业"
+                                                  Description="自动清理过期的作业，保持列表整洁。"
+                                                  IsOn="{Binding Settings.lsclearances, Mode=TwoWay}" />
+                                    <!-- 置底 -->
+                                    <ely:SettingsCard IconGlyph="ArrowDown" Header="置底"
+                                                  Description="将应用窗口置底显示。"
+                                                  IsOn="{Binding Settings.IsBottom, Mode=TwoWay}" />
                                 </StackPanel>
                             </StackPanel>
                         </ScrollViewer>

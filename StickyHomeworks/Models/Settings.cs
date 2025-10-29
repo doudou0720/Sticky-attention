@@ -40,6 +40,7 @@ public class Settings : ObservableRecipient
     // 添加缺失的属性定义
     private bool _lockwindow = false;
     private bool _lsclearances = false;
+    private string _updateMirrorUrl = "";
     private bool _backupst = false;
     private bool _recover = false;
     private bool _writbackup = false;
@@ -50,6 +51,22 @@ public class Settings : ObservableRecipient
     // 添加HTTP服务器和gRPC端口设置
     private int _httpServerPort = 5000;
     private int _grpcPort = 5001;
+
+    public Settings()
+    {
+        // 添加默认科目
+        _subjects = new ObservableCollection<string>
+        {
+            "语文",
+            "数学",
+            "英语",
+            "化学",
+            "生物",
+            "政治",
+            "历史",
+            "地理"
+        };
+    }
 
     public double WindowX
     {
@@ -474,6 +491,17 @@ public class Settings : ObservableRecipient
         {
             if (value == _lsclearances) return;
             _lsclearances = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string UpdateMirrorUrl
+    {
+        get => _updateMirrorUrl;
+        set
+        {
+            if (value == _updateMirrorUrl) return;
+            _updateMirrorUrl = value;
             OnPropertyChanged();
         }
     }

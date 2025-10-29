@@ -33,7 +33,6 @@ public partial class SettingsWindow : MyWindow
 {
     private GitHubUpdateService _updateService;
 
-    private const string UpdateUrl = "http://eb48d3a3.xy.proaa.top/index.xml";
     private const string IconPath01 = "/Assets/icon/上传 (1).png"; // 有最新版本时的图标
     private const string IconPath02 = "/Assets/icon/成功 (2).png"; // 没有最新版本时的图标
     private const string IconPath03 = "/Assets/icon/叹号 (1).png"; // 有最新版本且下载完毕时的图标
@@ -381,23 +380,24 @@ public partial class SettingsWindow : MyWindow
     }
 
     // 保留原有的CheckForUpdates方法以保持兼容性
+    // 保留原有的CheckForUpdates方法以保持兼容性
     private async void CheckForUpdates()
     {
-        using (var client = new WebClient())
+        try
         {
-            try
+            // 使用GitHubUpdateService检查更新
+            var latestRelease = await _updateService.GetLatestReleaseAsync();
+            
+            if (latestRelease != null)
             {
-                // 获取最新版本信息
-                var xmlContent = await client.DownloadStringTaskAsync(new Uri(UpdateUrl));
-                var updateInfo = ParseUpdateInfoFromXml(xmlContent);
-
-                if (_updateService.IsNewerVersion(updateInfo.Version, _updateService.GetCurrentVersion()))
+                var currentVersion = _updateService.GetCurrentVersion();
+                if (_updateService.IsNewerVersion(latestRelease.TagName, currentVersion))
                 {
                     // 有新版本
                     Dispatcher.Invoke(() =>
                     {
                         versionStatusTextBlock.Text = "检测到最新版本";
-                        versionStatusText.Text = _updateService.FormatVersionDisplay(updateInfo.Version); // 显示格式化后的版本号
+                        versionStatusText.Text = _updateService.FormatVersionDisplay(latestRelease.TagName); // 显示格式化后的版本号
                         versionStatusTexts.Text = "";
                         versionStatusText.FontSize = 18;
                         versionStatusText.FontWeight = FontWeights.Bold;
@@ -407,29 +407,73 @@ public partial class SettingsWindow : MyWindow
                         statusIcon.Source = new BitmapImage(new Uri(IconPath01, UriKind.Relative));
                     });
 
-                    // 开始下载
-                    await DownloadUpdate(client, updateInfo.Url);
-
-                    // 下载完毕
-                    Dispatcher.Invoke(() =>
+                    // 寻找适合当前系统的更新文件
+                    var appropriateAsset = _updateService.FindAppropriateAsset(latestRelease.Assets);
+                    if (appropriateAsset != null)
                     {
-                        versionStatusTextBlock.Text = "下载完成，请安装最新版本！";
-                        statusIcon.Source = new BitmapImage(new Uri(IconPath03, UriKind.Relative));
-
-                        var result = MessageBox.Show("您确定要运行更新程序吗？", "Sticky-attention", MessageBoxButton.YesNo, MessageBoxImage.Question);
-
+                        // 显示更新内容（release body）并询问用户是否更新
+                        var message = $"发现新版本: {_updateService.FormatVersionDisplay(latestRelease.TagName)}\n\n更新内容:\n{latestRelease.Body}\n\n是否下载并安装此更新？";
+                        var result = MessageBox.Show(message, "Sticky-attention 更新", MessageBoxButton.YesNo, MessageBoxImage.Information);
+                        
                         if (result == MessageBoxResult.Yes)
                         {
-                            // 用户点击了"是"，执行安装逻辑
-                            UnzipFile(DownloadFilePath, DecompressionFolder);
-                            RunExecutableAndCloseApp(Path.Combine(DecompressionFolder, "Sticky-attention.exe"));
-                            Close();
-                        }
+                            using (var client = new WebClient())
+                            {
+                                // 开始下载
+                                await DownloadUpdate(client, appropriateAsset);
+                            }
 
-                        // 隐藏进度条和标签
-                        pbDown.Visibility = Visibility.Collapsed;
-                        labelProgress.Visibility = Visibility.Collapsed;
-                    });
+                            // 下载完毕
+                            Dispatcher.Invoke(() =>
+                            {
+                                versionStatusTextBlock.Text = "下载完成，请安装最新版本！";
+                                statusIcon.Source = new BitmapImage(new Uri(IconPath03, UriKind.Relative));
+
+                                var installResult = MessageBox.Show("您确定要运行更新程序吗？", "Sticky-attention", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                                if (installResult == MessageBoxResult.Yes)
+                                {
+                                    // 解压文件
+                                    UnzipFile(DownloadFilePath, DecompressionFolder);
+
+                                    // 运行解压后的程序并关闭当前程序
+                                    string executablePath = Path.Combine(DecompressionFolder, "StickyHomeworks.exe");
+                                    RunExecutableAndCloseApp(executablePath);
+                                }
+                                else
+                                {
+                                    // 隐藏进度条和标签
+                                    pbDown.Visibility = Visibility.Collapsed;
+                                    labelProgress.Visibility = Visibility.Collapsed;
+                                }
+                            });
+                        }
+                        else
+                        {
+                            // 用户选择不更新，隐藏进度条和标签
+                            Dispatcher.Invoke(() =>
+                            {
+                                pbDown.Visibility = Visibility.Collapsed;
+                                labelProgress.Visibility = Visibility.Collapsed;
+                            });
+                        }
+                    }
+                    else
+                    {
+                        // 没有适合当前系统的更新文件
+                        Dispatcher.Invoke(() =>
+                        {
+                            versionStatusTextBlock.Text = "无合适更新";
+                            versionStatusTextBlock.FontSize = 40;
+                            versionStatusTextBlock.FontWeight = FontWeights.Bold;
+                            versionStatusText.Text = "未找到适用于您系统的更新文件";
+                            versionStatusTexts.Text = "";
+                            statusIcon.Source = new BitmapImage(new Uri(IconPath02, UriKind.Relative));
+
+                            pbDown.Visibility = Visibility.Collapsed;
+                            labelProgress.Visibility = Visibility.Collapsed;
+                        });
+                    }
                 }
                 else
                 {
@@ -446,36 +490,87 @@ public partial class SettingsWindow : MyWindow
                         versionStatusText.FontSize = 18;
                         versionStatusText.FontWeight = FontWeights.Bold;
 
-                        // 隐藏进度条和标签
                         pbDown.Visibility = Visibility.Collapsed;
                         labelProgress.Visibility = Visibility.Collapsed;
                     });
                 }
             }
-            catch (Exception ex)
+            else
             {
-                // 处理异常
+                // 无法获取更新信息
                 Dispatcher.Invoke(() =>
                 {
-                    versionStatusTextBlock.Text = "发生错误 " ; // 显示具体错误
+                    versionStatusTextBlock.Text = "检查更新失败";
                     versionStatusTextBlock.FontSize = 40;
-                    versionStatusText.Text = "错误详细: " + ex.Message; // 显示具体错误
+                    versionStatusText.Text = "无法连接到更新服务器";
                     versionStatusTexts.Text = "";
                     pbDown.Visibility = Visibility.Collapsed;
                     labelProgress.Visibility = Visibility.Collapsed;
                 });
             }
         }
+        catch (Exception ex)
+        {
+            // 发生异常
+            Dispatcher.Invoke(() =>
+            {
+                versionStatusTextBlock.Text = "发生错误 " ; // 显示具体错误
+                versionStatusTextBlock.FontSize = 40;
+                versionStatusText.Text = "错误详细: " + ex.Message; // 显示具体错误
+                versionStatusTexts.Text = "";
+                pbDown.Visibility = Visibility.Collapsed;
+                labelProgress.Visibility = Visibility.Collapsed;
+            });
+        }
     }
 
 
+    private async Task DownloadUpdate(HttpClient client, string url)
+    {
+        // 使用镜像URL替换原始URL（如果配置了镜像）
+        var mirrorUrl = Settings.UpdateMirrorUrl;
+        var finalUrl = _updateService.ReplaceWithMirrorUrl(url, mirrorUrl);
+        
+        using (HttpResponseMessage response = await client.GetAsync(finalUrl, HttpCompletionOption.ResponseHeadersRead))
+        {
+            response.EnsureSuccessStatusCode();
+            long totalBytes = response.Content.Headers.ContentLength ?? -1;
+            using (Stream contentStream = await response.Content.ReadAsStreamAsync())
+            using (FileStream fileStream = new FileStream("update.zip", FileMode.Create, FileAccess.Write, FileShare.None, 8192, true))
+            {
+                byte[] buffer = new byte[8192];
+                int bytesRead;
+                long totalBytesRead = 0;
+                DateTime startTime = DateTime.Now;
+                while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                {
+                    await fileStream.WriteAsync(buffer, 0, bytesRead);
+                    totalBytesRead += bytesRead;
+
+                    // 计算下载速度
+                    DateTime now = DateTime.Now;
+                    TimeSpan elapsedTime = now - startTime;
+                    double seconds = elapsedTime.TotalSeconds;
+                    double speed = totalBytesRead / (1024 * seconds); // 以KB/s为单位
+
+                    // 输出到控制台
+                    LogHelper.Info($"下载进度: {totalBytesRead}/{totalBytes}, 速度: {speed:F2} KB/s");
+                }
+            }
+        }
+    }
+
     private async Task DownloadUpdate(WebClient client, string url)
     {
+        // 使用镜像URL替换原始URL（如果配置了镜像）
+        var mirrorUrl = Settings.UpdateMirrorUrl;
+        var finalUrl = _updateService.ReplaceWithMirrorUrl(url, mirrorUrl);
+
         client.DownloadProgressChanged += Client_DownloadProgressChanged;
         client.DownloadFileCompleted += Client_DownloadFileCompleted;
 
         // 开始下载
-        await client.DownloadFileTaskAsync(new Uri(url), DownloadFilePath);
+        await client.DownloadFileTaskAsync(new Uri(finalUrl), DownloadFilePath);
     }
 
     private void Client_DownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
@@ -551,15 +646,191 @@ public partial class SettingsWindow : MyWindow
     {
         try
         {
+            // 获取当前应用程序的路径
+            string currentAppPath = System.Reflection.Assembly.GetEntryAssembly()?.Location 
+                                    ?? System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName 
+                                    ?? throw new InvalidOperationException("无法获取当前应用程序路径");
+            
+            // 获取当前应用程序所在目录
+            string currentAppDirectory = Path.GetDirectoryName(currentAppPath) 
+                                         ?? throw new InvalidOperationException("无法获取当前应用程序目录");
+            
+            // 创建VBScript脚本的路径
+            string updateScriptPath = Path.Combine(currentAppDirectory, "update.vbs");
+            
+            // 创建VBScript脚本来执行文件替换
+            string vbsContent = $@"
+Set fso = CreateObject(""Scripting.FileSystemObject"")
+Set shell = CreateObject(""WScript.Shell"")
+
+' 创建备份目录
+backupDir = ""{currentAppDirectory}\\backup""
+If Not fso.FolderExists(backupDir) Then
+    fso.CreateFolder(backupDir)
+End If
+
+' 备份原程序文件，但不备份.config目录
+On Error Resume Next
+fso.CopyFile ""{currentAppDirectory}\\*.exe"", backupDir & ""\\"" , True
+fso.CopyFile ""{currentAppDirectory}\\*.dll"", backupDir & ""\\"" , True
+
+' 特别处理.config目录，只备份其中的文件而不是整个目录
+configDir = ""{currentAppDirectory}\\.config""
+If fso.FolderExists(configDir) Then
+    backupConfigDir = backupDir & ""\\.config""
+    fso.CreateFolder(backupConfigDir)
+    fso.CopyFile configDir & ""\\*.*"", backupConfigDir & ""\\"" , True
+    ' 递归复制子目录
+    Set configFolder = fso.GetFolder(configDir)
+    For Each subFolder In configFolder.SubFolders
+        Set newFolder = fso.CreateFolder(backupConfigDir & ""\\"" & subFolder.Name)
+        fso.CopyFile subFolder.Path & ""\\*.*"", newFolder.Path & ""\\"" , True
+    Next
+End If
+On Error Goto 0
+
+' 等待主程序关闭
+WScript.Sleep 2000
+
+' 终止主程序进程
+shell.Run ""taskkill /f /im StickyHomeworks.exe"", 0, True
+
+' 解压ZIP文件（使用Shell.Application）
+Set app = CreateObject(""Shell.Application"")
+zipFile = ""{currentAppDirectory}\\{DownloadFilePath}""
+destinationFolder = ""{currentAppDirectory}\\temp_unzip""
+
+' 创建临时解压目录
+If Not fso.FolderExists(destinationFolder) Then
+    fso.CreateFolder(destinationFolder)
+End If
+
+' 执行解压
+app.NameSpace(destinationFolder).CopyHere app.NameSpace(zipFile).Items, 4 OR 16
+
+' 等待解压完成（最多等待30秒）
+count = 0
+Do While count < 30
+    Set destFolder = app.NameSpace(destinationFolder)
+    If Not destFolder Is Nothing Then
+        Set items = destFolder.Items
+        If items.Count > 0 Then
+            Exit Do
+        End If
+    End If
+    WScript.Sleep 1000
+    count = count + 1
+Loop
+
+' 检查解压是否成功
+If Not fso.FolderExists(destinationFolder) Or fso.GetFolder(destinationFolder).Files.Count = 0 Then
+    ' 解压失败，恢复备份并重启旧程序
+    MsgBox ""更新失败：无法解压新版本文件。正在恢复原版本..."", vbExclamation, ""更新失败""
+    RestoreAndRestart
+    WScript.Quit
+End If
+
+' 复制解压后的文件到当前目录（但不覆盖.config目录）
+On Error Resume Next
+fso.CopyFile destinationFolder & ""\\*.*"", ""{currentAppDirectory}\\*.*"", True
+
+' 检查复制是否成功
+If Err.Number <> 0 Then
+    ' 复制失败，恢复备份并重启旧程序
+    MsgBox ""更新失败：无法复制新版本文件。正在恢复原版本..."", vbExclamation, ""更新失败""
+    RestoreAndRestart
+    WScript.Quit
+End If
+On Error Goto 0
+
+' 删除解压目录和原始ZIP文件
+If fso.FolderExists(destinationFolder) Then
+    On Error Resume Next
+    fso.DeleteFolder destinationFolder, True
+    On Error Goto 0
+End If
+
+If fso.FileExists(zipFile) Then
+    fso.DeleteFile zipFile
+End If
+
+' 启动更新后的程序
+shell.Run """"""{currentAppDirectory}\\{Path.GetFileName(filePath)}"""""", 1, False
+
+' 删除备份文件和此VBScript文件
+WScript.Sleep 2000
+On Error Resume Next
+fso.DeleteFolder backupDir, True
+Set WshShell = CreateObject(""WScript.Shell"")
+WshShell.Run ""cmd /c del """"{updateScriptPath}"""""", 0, False
+On Error Goto 0
+
+' 恢复并重启的子程序
+Sub RestoreAndRestart()
+    Set fso = CreateObject(""Scripting.FileSystemObject"")
+    Set shell = CreateObject(""WScript.Shell"")
+    
+    ' 删除可能已复制的新文件（但保留.config目录）
+    On Error Resume Next
+    Set newFiles = fso.GetFolder(""{currentAppDirectory}"").Files
+    For Each file In newFiles
+        If fso.FileExists(""backup\"" & file.Name) Then
+            fso.DeleteFile file.Path
+        End If
+    Next
+    
+    ' 恢复备份的文件（但不处理.config目录）
+    fso.CopyFile ""backup\\*.*"", ""{currentAppDirectory}\\*.*"", True
+    
+    ' 恢复.config目录中的文件
+    backupConfigDir = ""backup\\.config""
+    targetConfigDir = ""{currentAppDirectory}\\.config""
+    If fso.FolderExists(backupConfigDir) Then
+        If Not fso.FolderExists(targetConfigDir) Then
+            fso.CreateFolder(targetConfigDir)
+        End If
+        fso.CopyFile backupConfigDir & ""\\*.*"", targetConfigDir & ""\\"" , True
+        
+        ' 恢复子目录
+        Set backupConfigFolder = fso.GetFolder(backupConfigDir)
+        For Each subFolder In backupConfigFolder.SubFolders
+            targetSubFolder = targetConfigDir & ""\\"" & subFolder.Name
+            If Not fso.FolderExists(targetSubFolder) Then
+                fso.CreateFolder(targetSubFolder)
+            End If
+            fso.CopyFile subFolder.Path & ""\\*.*"", targetSubFolder & ""\\"" , True
+        Next
+    End If
+    On Error Goto 0
+    
+    ' 启动旧程序
+    shell.Run """"""{currentAppDirectory}\\{Path.GetFileName(filePath)}"""""", 1, False
+    
+    ' 删除此VBScript文件
+    WScript.Sleep 1000
+    Set WshShell = CreateObject(""WScript.Shell"")
+    WshShell.Run ""cmd /c del """"{updateScriptPath}"""""", 0, False
+End Sub
+";
+
+            // 写入VBScript文件
+            File.WriteAllText(updateScriptPath, vbsContent, System.Text.Encoding.Unicode);
+            
             // 关闭当前应用程序
             Application.Current.Shutdown();
-
-            // 启动新的可执行文件
-            Process.Start(filePath);
+            
+            // 启动VBScript脚本
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "wscript.exe",
+                Arguments = $"//B \"{updateScriptPath}\"", // //B 参数隐藏脚本窗口
+                UseShellExecute = false,
+                CreateNoWindow = true
+            });
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"无法启动程序: {ex.Message}");
+            MessageBox.Show($"无法启动更新程序: {ex.Message}");
         }
     }
 
@@ -589,83 +860,6 @@ public partial class SettingsWindow : MyWindow
         Crashes.GenerateTestCrash();
     }
 
-
-    private async void ButtonUpate_OnClick(object sender, RoutedEventArgs e)
-    {
-        using (var client = new HttpClient())
-        {
-            var xmlContent = await client.GetStringAsync(UpdateUrl); // 使用HttpClient获取更新信息
-            var updateInfo = ParseUpdateInfoFromXml(xmlContent);
-
-           
-
-            versionStatusTextBlock.Text = "正在执行策略！";
-            versionStatusText.Text = _updateService.FormatVersionDisplay(updateInfo.Version); // 显示格式化后的版本号
-            versionStatusTexts.Text = "";
-            versionStatusText.FontSize = 18;
-            versionStatusText.FontWeight = FontWeights.Bold;
-
-            versionStatusTextBlock.FontSize = 40;
-            versionStatusTextBlock.FontWeight = FontWeights.Bold;
-            statusIcon.Source = new BitmapImage(new Uri(IconPath01, UriKind.Relative));
-
-             // 开始下载
-            await DownloadUpdate(client, updateInfo.Url);
-
-
-            // 下载完毕
-            Dispatcher.Invoke(() =>
-            {
-                versionStatusTextBlock.Text = "下载完成，请安装最新版本！";
-                statusIcon.Source = new BitmapImage(new Uri(IconPath03, UriKind.Relative));
-
-                var result = MessageBox.Show("您确定要运行更新程序吗？", "Sticky-attention", MessageBoxButton.YesNo, MessageBoxImage.Question);
-
-                if (result == MessageBoxResult.Yes)
-                {
-                    // 用户点击了"是"，执行安装逻辑
-                    UnzipFile(DownloadFilePath, DecompressionFolder);
-                    RunExecutableAndCloseApp(Path.Combine(DecompressionFolder, "Sticky-attention.exe"));
-                    Close();
-                }
-
-                // 隐藏进度条和标签
-                pbDown.Visibility = Visibility.Collapsed;
-                labelProgress.Visibility = Visibility.Collapsed;
-            });
-        }
-    }
-
-    private async Task DownloadUpdate(HttpClient client, string url)
-    {
-        using (HttpResponseMessage response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead))
-        {
-            response.EnsureSuccessStatusCode();
-            long totalBytes = response.Content.Headers.ContentLength ?? -1;
-            using (Stream contentStream = await response.Content.ReadAsStreamAsync())
-            using (FileStream fileStream = new FileStream("update.zip", FileMode.Create, FileAccess.Write, FileShare.None, 8192, true))
-            {
-                byte[] buffer = new byte[8192];
-                int bytesRead;
-                long totalBytesRead = 0;
-                DateTime startTime = DateTime.Now;
-                while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
-                {
-                    await fileStream.WriteAsync(buffer, 0, bytesRead);
-                    totalBytesRead += bytesRead;
-
-                    // 计算下载速度
-                    DateTime now = DateTime.Now;
-                    TimeSpan elapsedTime = now - startTime;
-                    double seconds = elapsedTime.TotalSeconds;
-                    double speed = totalBytesRead / (1024 * seconds); // 以KB/s为单位
-
-                    // 输出到控制台
-                    LogHelper.Info($"下载进度: {totalBytesRead}/{totalBytes}, 速度: {speed:F2} KB/s");
-                }
-            }
-        }
-    }
 
     private async void CheckForUpdatesFromGitHub()
     {
@@ -707,13 +901,13 @@ public partial class SettingsWindow : MyWindow
                 });
 
                 // 寻找合适的下载资源
-                var downloadUrl = _updateService.FindAppropriateAsset(latestRelease.Assets);
-                if (!string.IsNullOrEmpty(downloadUrl))
+                var appropriateAsset = _updateService.FindAppropriateAsset(latestRelease.Assets);
+                if (!string.IsNullOrEmpty(appropriateAsset))
                 {
-                    using (var client = new WebClient())
+                    using (var client = new HttpClient())
                     {
                         // 开始下载
-                        await DownloadUpdate(client, downloadUrl);
+                        await DownloadUpdate(client, appropriateAsset);
 
                         // 下载完毕
                         Dispatcher.Invoke(() =>
