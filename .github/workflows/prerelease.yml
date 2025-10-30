@@ -1,95 +1,13 @@
-name: PreRelease Build
+name: "[Disabled] PreRelease Build"
 
 on:
-  push:
-    tags:
-      - 'v*-*'  # 匹配预发布版本标签，如 v1.1.7.7-rc.0, v1.1.7.7-beta.1 等
   workflow_dispatch:
 
 jobs:
   build-prerelease:
+    if: false
     runs-on: windows-latest
     
-    strategy:
-      matrix:
-        runtime: [win-x64, win-x86]
-        selfContained: [true, false]
-    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '8.0.x'
-
-    - name: Get version from tag
-      id: version
-      run: |
-        echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-      shell: bash
-
-    - name: Update App.xaml.cs with full version info
-      run: |
-        $filePath = "StickyHomeworks/App.xaml.cs"
-        $content = Get-Content $filePath -Raw
-        $content = $content -replace 'public static string FullAppVersion { get; set; } = "v" \+ AppVersion;', "public static string FullAppVersion { get; set; } = `"$env:tag`";"
-        Set-Content $filePath $content
-      shell: pwsh
-
-    - name: Install dependencies
-      run: dotnet restore
-
-    - name: Build project
-      run: |
-        $suffix = ""
-        if ($env:selfContained -eq "false") {
-          $suffix = "-no-runtime"
-        }
-        
-        dotnet publish StickyHomeworks/StickyHomeworks.csproj -c Release -r ${{ matrix.runtime }} --self-contained ${{ matrix.selfContained }} -p:PublishSingleFile=true -o ./publish-${{ matrix.runtime }}${suffix}/
-
-    - name: Create release archives
-      run: |
-        $suffix = ""
-        if ($env:selfContained -eq "false") {
-          $suffix = "-no-runtime"
-        }
-        
-        cd publish-${{ matrix.runtime }}${suffix}
-        Compress-Archive -Path * -DestinationPath ../StickyHomeworks-${{ steps.version.outputs.tag }}-${{ matrix.runtime }}${suffix}.zip
-      shell: pwsh
-
-    - name: Create GitHub Release
-      uses: ncipollo/release-action@v1
-      with:
-        artifacts: "StickyHomeworks-${{ steps.version.outputs.tag }}-*.zip"
-        name: "PreRelease ${{ steps.version.outputs.tag }}"
-        tag: ${{ steps.version.outputs.tag }}
-        commit: ${{ github.sha }}
-        prerelease: true
-        draft: false
-        body: |
-          ## StickyHomeworks ${{ steps.version.outputs.tag }}
-          
-          感谢下载StickyHomeworks！这是预发布版本${{ steps.version.outputs.tag }}。
-          
-          ## 版本说明
-          - `win-x64`: 64位Windows系统版本
-          - `win-x86`: 32位Windows系统版本
-          - `-no-runtime`: 不包含运行时的版本（体积更小但需要安装.NET 8运行时）
-          - 默认版本: 包含完整运行时的独立版本
-          
-          ## 注意事项
-          这是一个预发布版本，可能包含未完成的功能或已知问题。请在测试环境中使用。
-          
-          ## 安装说明
-          1. 根据系统选择对应架构版本(x64/x86)
-          2. 下载对应ZIP压缩包
-          3. 解压到目标位置
-          4. 运行StickyHomeworks.exe
-          
-          ## 系统要求
-          - Windows 7 或更高版本
-          - .NET 8 运行时（仅在使用-no-runtime版本时需要单独安装）
+    - name: Skip
+      run: echo "This workflow has been disabled and merged into release-on-publish.yml"

@@ -5,7 +5,7 @@ name: "[Disabled] Release Build"
 on:
   # push:
   #   tags:
-  #     - 'v*'
+  #     - 'v*'  # 匹配正式版本标签，如 v1.1.7.7
   workflow_dispatch:  # Keep this for manual triggering if needed
 
 jobs:
