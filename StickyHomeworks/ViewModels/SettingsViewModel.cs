@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace StickyHomeworks.ViewModels;
 
@@ -13,6 +13,12 @@ public class SettingsViewModel : ObservableRecipient
     private string _tagEditText = "";
     private int _tagSelectedIndex = -1;
     private string _debugRichTextBoxContent = "";
+    
+    // 服务器状态文本
+    private string _httpServerStatusText = "未知";
+    private string _httpServerStatusDetailText = "请重启应用程序以应用设置";
+    private string _grpcServiceStatusText = "未知";
+    private string _grpcServiceStatusDetailText = "请重启应用程序以应用设置";
 
     public int AppIconClickCount
     {
@@ -109,6 +115,54 @@ public class SettingsViewModel : ObservableRecipient
         {
             if (value == _debugRichTextBoxContent) return;
             _debugRichTextBoxContent = value;
+            OnPropertyChanged();
+        }
+    }
+    
+    // HTTP服务器状态文本属性
+    public string HttpServerStatusText
+    {
+        get => _httpServerStatusText;
+        set
+        {
+            if (value == _httpServerStatusText) return;
+            _httpServerStatusText = value;
+            OnPropertyChanged();
+        }
+    }
+    
+    // HTTP服务器状态详细文本属性
+    public string HttpServerStatusDetailText
+    {
+        get => _httpServerStatusDetailText;
+        set
+        {
+            if (value == _httpServerStatusDetailText) return;
+            _httpServerStatusDetailText = value;
+            OnPropertyChanged();
+        }
+    }
+    
+    // gRPC服务状态文本属性
+    public string GrpcServiceStatusText
+    {
+        get => _grpcServiceStatusText;
+        set
+        {
+            if (value == _grpcServiceStatusText) return;
+            _grpcServiceStatusText = value;
+            OnPropertyChanged();
+        }
+    }
+    
+    // gRPC服务状态详细文本属性
+    public string GrpcServiceStatusDetailText
+    {
+        get => _grpcServiceStatusDetailText;
+        set
+        {
+            if (value == _grpcServiceStatusDetailText) return;
+            _grpcServiceStatusDetailText = value;
             OnPropertyChanged();
         }
     }

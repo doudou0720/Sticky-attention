@@ -238,6 +238,28 @@
                                              materialDesign:TextFieldAssist.SuffixText="端口"/>
                     </ely:SettingsCard.Switcher>
                 </ely:SettingsCard>
+                
+                <!-- HTTP服务器状态 -->
+                <ely:SettingsCard IconGlyph="Information" Header="HTTP服务器状态"
+                                  Description="{Binding ViewModel.HttpServerStatusText}" 
+                                  IsEnabled="False">
+                    <ely:SettingsCard.Switcher>
+                        <TextBlock Text="{Binding ViewModel.HttpServerStatusDetailText}" 
+                                   Foreground="{DynamicResource MaterialDesignBody}"
+                                   TextWrapping="Wrap"/>
+                    </ely:SettingsCard.Switcher>
+                </ely:SettingsCard>
+
+                <!-- gRPC服务状态 -->
+                <ely:SettingsCard IconGlyph="Information" Header="gRPC服务状态"
+                                  Description="{Binding ViewModel.GrpcServiceStatusText}" 
+                                  IsEnabled="False">
+                    <ely:SettingsCard.Switcher>
+                        <TextBlock Text="{Binding ViewModel.GrpcServiceStatusDetailText}" 
+                                   Foreground="{DynamicResource MaterialDesignBody}"
+                                   TextWrapping="Wrap"/>
+                    </ely:SettingsCard.Switcher>
+                </ely:SettingsCard>
 
             </StackPanel>
         </ScrollViewer>

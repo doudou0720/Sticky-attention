@@ -42,6 +42,9 @@ public partial class SettingsWindow : MyWindow
     private Markdown engine;
     private FlowDocument document;
 
+    // 添加IsOpened属性
+    public bool IsOpened { get; set; } = false;
+
     public SettingsViewModel ViewModel
     {
         get;
@@ -52,21 +55,10 @@ public partial class SettingsWindow : MyWindow
     {
         get;
         set;
-    } = new();
+    }
 
-    public bool IsOpened
-    {
-        get;
-        set;
-    } = false;
-
-    public bool Clean
-    {
-        get;
-        set;
-    } = false;
-
-    public WallpaperPickingService WallpaperPickingService { get; }
+    // 正确声明WallpaperPickingService字段
+    public WallpaperPickingService WallpaperPickingService { get; set; }
 
     public SettingsWindow(WallpaperPickingService wallpaperPickingService,
         SettingsService settingsService)
@@ -109,8 +101,40 @@ public partial class SettingsWindow : MyWindow
                 MessageBoxButton.OK, 
                 MessageBoxImage.Information);
         }
+        
+        // 更新服务器状态显示
+        UpdateServerStatus();
     }
 
+    /// <summary>
+    /// 更新服务器状态显示
+    /// </summary>
+    private void UpdateServerStatus()
+    {
+        // 更新HTTP服务器状态
+        if (Settings.HttpServerEnabled)
+        {
+            ViewModel.HttpServerStatusText = "Started";
+            ViewModel.HttpServerStatusDetailText = $"Running on port {Settings.HttpServerPort}";
+        }
+        else
+        {
+            ViewModel.HttpServerStatusText = "Stopped";
+            ViewModel.HttpServerStatusDetailText = "HTTP server is disabled";
+        }
+
+        // 更新gRPC服务状态
+        if (Settings.GrpcEnabled)
+        {
+            ViewModel.GrpcServiceStatusText = "Started";
+            ViewModel.GrpcServiceStatusDetailText = $"Running on port {Settings.GrpcPort}";
+        }
+        else
+        {
+            ViewModel.GrpcServiceStatusText = "Stopped";
+            ViewModel.GrpcServiceStatusDetailText = "gRPC service is disabled";
+        }
+    }
 
     protected override void OnInitialized(EventArgs e)
     {
@@ -123,6 +147,8 @@ public partial class SettingsWindow : MyWindow
     protected override void OnContentRendered(EventArgs e)
     {
         Settings.PropertyChanged += SettingsOnPropertyChanged;
+        // 初始化服务器状态显示
+        UpdateServerStatus();
         base.OnContentRendered(e);
     }
 
@@ -227,22 +253,42 @@ public partial class SettingsWindow : MyWindow
 
     private async void ButtonUpdateWallpaper_OnClick(object sender, RoutedEventArgs e)
     {
-        await WallpaperPickingService.GetWallpaperAsync();
+        try
+        {
+            await WallpaperPickingService.GetWallpaperAsync();
+        }
+        catch (Exception ex)
+        {
+            LogHelper.Error($"更新壁纸时发生错误: {ex.Message}", ex);
+            MessageBox.Show($"更新壁纸失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private async void ButtonBrowseWindows_OnClick(object sender, RoutedEventArgs e)
     {
-        var w = new WindowsPicker(Settings.WallpaperClassName)
+        try
         {
-            Owner = this,
-        };
-        var r = w.ShowDialog();
-        Settings.WallpaperClassName = w.SelectedResult ?? "";
-        if (r == true)
-        {
-            await WallpaperPickingService.GetWallpaperAsync();
+            var w = new WindowsPicker(Settings.WallpaperClassName)
+            {
+                Owner = this,
+            };
+
+            // ShowDialog 返回的是 bool? (Nullable<bool>)，需要判断 HasValue 并检查值
+            if (w.ShowDialog() == true)
+            {
+                Settings.WallpaperClassName = w.SelectedResult ?? "";
+                await WallpaperPickingService.GetWallpaperAsync();
+            }
         }
-        GC.Collect();
+        catch (Exception ex)
+        {
+            LogHelper.Error($"浏览窗口时发生错误: {ex.Message}", ex);
+            MessageBox.Show($"操作失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            GC.Collect(); // 确保即使发生异常，也会尝试进行垃圾回收
+        }
     }
 
     private void MenuItemExperimentalSettings_OnClick(object sender, RoutedEventArgs e)
