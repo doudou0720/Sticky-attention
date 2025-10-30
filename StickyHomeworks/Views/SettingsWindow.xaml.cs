@@ -89,9 +89,7 @@ public partial class SettingsWindow : MyWindow
     private void SettingsOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         // 检查是否是需要重启的设置项
-        if (e.PropertyName == nameof(Settings.HttpServerEnabled) || 
-            e.PropertyName == nameof(Settings.GrpcEnabled) ||
-            e.PropertyName == nameof(Settings.HttpServerPort) ||
+        if (e.PropertyName == nameof(Settings.GrpcEnabled) ||
             e.PropertyName == nameof(Settings.GrpcPort))
         {
             // 显示重启提示
@@ -111,18 +109,6 @@ public partial class SettingsWindow : MyWindow
     /// </summary>
     private void UpdateServerStatus()
     {
-        // 更新HTTP服务器状态
-        if (Settings.HttpServerEnabled)
-        {
-            ViewModel.HttpServerStatusText = "Started";
-            ViewModel.HttpServerStatusDetailText = $"Running on port {Settings.HttpServerPort}";
-        }
-        else
-        {
-            ViewModel.HttpServerStatusText = "Stopped";
-            ViewModel.HttpServerStatusDetailText = "HTTP server is disabled";
-        }
-
         // 更新gRPC服务状态
         if (Settings.GrpcEnabled)
         {

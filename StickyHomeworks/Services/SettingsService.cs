@@ -52,9 +52,7 @@ public class SettingsService : ObservableRecipient, IHostedService
     private void OnOnSettingsChanged(object? sender, PropertyChangedEventArgs e)
     {
         // 检查是否是需要重启的设置项
-        if (e.PropertyName == nameof(Settings.HttpServerEnabled) || 
-            e.PropertyName == nameof(Settings.GrpcEnabled) ||
-            e.PropertyName == nameof(Settings.HttpServerPort) ||
+        if (e.PropertyName == nameof(Settings.GrpcEnabled) ||
             e.PropertyName == nameof(Settings.GrpcPort))
         {
             _restartRequired = true;

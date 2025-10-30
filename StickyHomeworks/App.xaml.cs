@@ -269,7 +269,7 @@ public partial class App : AppEx
             var settingsService = GetService<SettingsService>();
             var settings = settingsService.Settings;
 
-            if (settings.HttpServerEnabled || settings.GrpcEnabled)
+            if (settings.GrpcEnabled)
             {
                 var webServicePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "StickyHomeworks.Web.exe");
                 if (File.Exists(webServicePath))
@@ -285,14 +285,8 @@ public partial class App : AppEx
                     };
 
                     // 添加配置参数
-                    if (!settings.HttpServerEnabled)
-                        startInfo.ArgumentList.Add("--EnableHttpServer=false");
-                    
                     if (!settings.GrpcEnabled)
                         startInfo.ArgumentList.Add("--EnableGrpcService=false");
-                    
-                    if (settings.HttpServerPort != 5000)
-                        startInfo.ArgumentList.Add($"--HttpServerPort={settings.HttpServerPort}");
                     
                     if (settings.GrpcPort != 5001)
                         startInfo.ArgumentList.Add($"--GrpcPort={settings.GrpcPort}");
@@ -307,7 +301,7 @@ public partial class App : AppEx
             }
             else
             {
-                LogHelper.Info("Both HTTP server and gRPC service are disabled, skipping web service startup");
+                LogHelper.Info("gRPC service is disabled, skipping web service startup");
             }
         }
         catch (Exception ex)
