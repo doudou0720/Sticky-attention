@@ -29,6 +29,22 @@ jobs:
     - name: Install dependencies
       run: dotnet restore
 
+    - name: Get version info
+      id: version
+      run: |
+        echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+        echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        echo "full_version=v1.1.7.7-nightly-$(date +'%Y%m%d')-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - name: Update App.xaml.cs with full version info
+      run: |
+        $filePath = "StickyHomeworks/App.xaml.cs"
+        $content = Get-Content $filePath -Raw
+        $content = $content -replace 'public static string FullAppVersion { get; set; } = "v" \+ AppVersion;', "public static string FullAppVersion { get; set; } = `"${{ steps.version.outputs.full_version }}`";"
+        Set-Content $filePath $content
+      shell: pwsh
+
     - name: Calculate suffix
       id: suffix
       run: |
@@ -42,13 +58,6 @@ jobs:
     - name: Build project
       run: |
         dotnet publish StickyHomeworks/StickyHomeworks.csproj -c Release -r ${{ matrix.runtime }} --self-contained ${{ matrix.selfContained }} -p:PublishSingleFile=true -o ./publish-${{ matrix.runtime }}${{ steps.suffix.outputs.suffix }}/
-
-    - name: Get version info
-      id: version
-      run: |
-        echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
-        echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-      shell: bash
 
     - name: List files before archive
       run: dir

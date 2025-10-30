@@ -993,9 +993,8 @@ End Sub
     private string GetCurrentVersion()
     {
         // 获取当前应用版本
-        return App.AppVersion; // 这里应该替换为获取实际版本的方法
+        return App.FullAppVersion; // 使用完整版本信息
     }
-
 }
 
 

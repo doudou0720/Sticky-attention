@@ -1,16 +1,13 @@
-# release.yml
-# name: Release Build
-name: "[Disabled] Release Build"
+name: PreRelease Build
 
 on:
-  # push:
-  #   tags:
-  #     - 'v*'
-  workflow_dispatch:  # Keep this for manual triggering if needed
+  push:
+    tags:
+      - 'v*-*'  # 匹配预发布版本标签，如 v1.1.7.7-rc.0, v1.1.7.7-beta.1 等
+  workflow_dispatch:
 
 jobs:
-  build-release:
-    if: false  # This will disable all jobs in this workflow
+  build-prerelease:
     runs-on: windows-latest
     
     strategy:
@@ -68,15 +65,15 @@ jobs:
       uses: ncipollo/release-action@v1
       with:
         artifacts: "StickyHomeworks-${{ steps.version.outputs.tag }}-*.zip"
-        name: "Release ${{ steps.version.outputs.tag }}"
+        name: "PreRelease ${{ steps.version.outputs.tag }}"
         tag: ${{ steps.version.outputs.tag }}
         commit: ${{ github.sha }}
-        prerelease: false
+        prerelease: true
         draft: false
         body: |
           ## StickyHomeworks ${{ steps.version.outputs.tag }}
           
-          感谢下载StickyHomeworks！这是稳定版本${{ steps.version.outputs.tag }}。
+          感谢下载StickyHomeworks！这是预发布版本${{ steps.version.outputs.tag }}。
           
           ## 版本说明
           - `win-x64`: 64位Windows系统版本
@@ -84,8 +81,8 @@ jobs:
           - `-no-runtime`: 不包含运行时的版本（体积更小但需要安装.NET 8运行时）
           - 默认版本: 包含完整运行时的独立版本
           
-          ## 更新内容
-          - TODO: 添加更新日志
+          ## 注意事项
+          这是一个预发布版本，可能包含未完成的功能或已知问题。请在测试环境中使用。
           
           ## 安装说明
           1. 根据系统选择对应架构版本(x64/x86)

@@ -41,6 +41,8 @@ public partial class App : AppEx
     private System.Timers.Timer _memoryUsageTimer;
     public static string AppVersion => Assembly.GetExecutingAssembly().GetName().Version!.ToString();
 
+    public static string FullAppVersion { get; set; } = "v" + AppVersion; // 默认使用程序集版本
+
     [DllImport("kernel32.dll")]
     private static extern IntPtr GetConsoleWindow();
 
@@ -169,7 +171,7 @@ public partial class App : AppEx
 
         public static void PrintWelcomeMessage()
         {
-            string welcomeMessage = " \r\n \r\n ____  _ _      _ _   _ _   _             \r\n / ___ || | _(_) ___ | | ___   _ __ _ | | _ | | _ ___ _ __ | | _(_) ___ _ __  \r\n \\___ \\| __ | |/ __ | |/ / | | | _____ / _` | __ | __ / _ \\ '_ \\| __| |/ _ \\| '_ \\ \r\n ___) | | _ | | (__ |   <| | _ | | _____ | (_ | | | _ | || __ / | | | | _ | | (_) | | | |\r\n | ____ / \\__ | _ |\\___ | _ |\\_\\\\__, |      \\__,_ |\\__ |\\__\\___ | _ | | _ |\\__ | _ |\\___ /| _ | | _ |\r\n | ___ /                                                 \r\n";
+            string welcomeMessage = " \r\n \r\n ____  _ _      _ _   _ _   _             \r\n / ___ || | _(_) ___ | | ___   _ __ _ | | _ | | _ ___ _ __ | | _(_) ___ _ __  \r\n \\___ \\| __ | |/ __ | |/ / | | | | _____ / _` | __ | __ / _ \\ '_ \\| __| |/ _ \\| '_ \\ \r\n ___) | | _ | | (__ |   <| | _ | | _____ | (_ | | | _ | || __ / | | | | _ | | (_) | | | |\r\n | ____ / \\__ | _ |\\___ | _ |\\_\\\\__, |      \\__,_ |\\__ |\\__\\___ | _ | | _ |\\__ | _ |\\___ /| _ | | _ |\r\n | ___ /                                                 \r\n";
             for (int i = 0; i < welcomeMessage.Length; i++)
             {
                 Console.ForegroundColor = Colors[i % Colors.Length];

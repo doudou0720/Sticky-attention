@@ -145,7 +145,7 @@ public class GitHubUpdateService
                 return false;
 
             // 主版本号相同，比较预发布标签
-            // 如果远程版本没有预发布标签，而当前版本有，则远程版本更新
+            // 如果远程版本没有预发布标签，而当前版本有，则远程版本更新（从预发布到稳定版）
             if (string.IsNullOrEmpty(remoteParts.preRelease) && !string.IsNullOrEmpty(currentParts.preRelease))
                 return true;
             
@@ -235,9 +235,8 @@ public class GitHubUpdateService
 
     public string GetCurrentVersion()
     {
-        // 获取当前应用版本
-        var version = Assembly.GetEntryAssembly()?.GetName().Version;
-        return version != null ? version.ToString() : "0.0.0.0";
+        // 获取当前应用完整版本（包括预发布标签）
+        return App.FullAppVersion;
     }
     
     public string ReplaceWithMirrorUrl(string originalUrl, string mirrorUrl)
