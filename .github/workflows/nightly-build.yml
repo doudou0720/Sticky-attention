@@ -37,14 +37,6 @@ jobs:
         echo "full_version=v1.1.7.7-nightly-$(date +'%Y%m%d')-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
       shell: bash
 
-    - name: Update App.xaml.cs with full version info
-      run: |
-        $filePath = "StickyHomeworks/App.xaml.cs"
-        $content = Get-Content $filePath -Raw
-        $content = $content -replace 'public static string FullAppVersion { get; set; } = "v" \+ AppVersion;', "public static string FullAppVersion { get; set; } = `"${{ steps.version.outputs.full_version }}`";"
-        Set-Content $filePath $content
-      shell: pwsh
-
     - name: Calculate suffix
       id: suffix
       run: |
@@ -55,9 +47,22 @@ jobs:
         fi
       shell: bash
 
-    - name: Build project
+    - name: Build Web project
       run: |
-        dotnet publish StickyHomeworks/StickyHomeworks.csproj -c Release -r ${{ matrix.runtime }} --self-contained ${{ matrix.selfContained }} -p:PublishSingleFile=true -o ./publish-${{ matrix.runtime }}${{ steps.suffix.outputs.suffix }}/
+        $version = "1.1.7.7"
+        $informationalVersion = "${{ steps.version.outputs.full_version }}"
+        dotnet publish StickyHomeworks.Web/StickyHomeworks.Web.csproj -c Release -r ${{ matrix.runtime }} --self-contained ${{ matrix.selfContained }} -p:PublishSingleFile=true -p:Version=$version -p:InformationalVersion=$informationalVersion -o ./publish-web-${{ matrix.runtime }}${{ steps.suffix.outputs.suffix }}/
+
+    - name: Build main project
+      run: |
+        $version = "1.1.7.7"
+        $informationalVersion = "${{ steps.version.outputs.full_version }}"
+        dotnet publish StickyHomeworks/StickyHomeworks.csproj -c Release -r ${{ matrix.runtime }} --self-contained ${{ matrix.selfContained }} -p:PublishSingleFile=true -p:Version=$version -p:InformationalVersion=$informationalVersion -o ./publish-${{ matrix.runtime }}${{ steps.suffix.outputs.suffix }}/
+
+    - name: Copy Web executable to main output
+      run: |
+        Copy-Item -Path "./publish-web-${{ matrix.runtime }}${{ steps.suffix.outputs.suffix }}/StickyHomeworks.Web.exe" -Destination "./publish-${{ matrix.runtime }}${{ steps.suffix.outputs.suffix }}/"
+      shell: pwsh
 
     - name: List files before archive
       run: dir

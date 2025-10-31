@@ -12,15 +12,15 @@
     <UserSecretsId>0d8165ac-3a9f-437c-8b8e-839225e5a88b</UserSecretsId>
     <AssemblyVersion>1.1.7.7</AssemblyVersion>
     <FileVersion>1.1.7.7</FileVersion>
+    <InformationalVersion>1.1.7.7</InformationalVersion>
     <IncludeSymbols>False</IncludeSymbols>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
     <DebugType>embedded</DebugType>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
     <DebugType>embedded</DebugType>
   </PropertyGroup>
   <ItemGroup>
@@ -46,7 +46,7 @@
   <ItemGroup>
     <ProjectReference Include="..\ElysiaFramework\ElysiaFramework.csproj" />
     <ProjectReference Include="..\StickyHomeworks.Core\StickyHomeworks.Core.csproj" />
-    <ProjectReference Include="..\StickyHomeworks.Web\StickyHomeworks.Web.csproj" />
+    <!-- 移除了对StickyHomeworks.Web的项目引用，因为它应该作为独立的可执行文件运行 -->
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Assets\**" />

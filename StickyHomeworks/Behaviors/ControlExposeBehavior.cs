@@ -1,4 +1,4 @@
-﻿using Microsoft.Xaml.Behaviors;
+using Microsoft.Xaml.Behaviors;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -39,5 +39,12 @@ public class ControlExposeBehavior : Behavior<Control>
     {
         TryExpose();
         base.OnAttached();
+    }
+
+    protected override void OnDetaching()
+    {
+        // 清理引用以防止内存泄漏
+        ExposedControl = null;
+        base.OnDetaching();
     }
 }

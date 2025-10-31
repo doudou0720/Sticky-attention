@@ -1,4 +1,4 @@
-﻿using Microsoft.Xaml.Behaviors;
+using Microsoft.Xaml.Behaviors;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;

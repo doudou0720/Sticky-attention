@@ -1,4 +1,4 @@
-﻿using ElysiaFramework;
+using ElysiaFramework;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Win32;
 using StickyHomeworks;
@@ -187,14 +187,26 @@ public sealed class WallpaperPickingService : IHostedService, INotifyPropertyCha
         }
     }
 
-    public Task StartAsync(CancellationToken cancellationToken)
+    public async Task StartAsync(CancellationToken cancellationToken)
     {
-        return Task.CompletedTask;
+        return;
     }
 
-    public Task StopAsync(CancellationToken cancellationToken)
+    public async Task StopAsync(CancellationToken cancellationToken)
     {
-        return Task.CompletedTask;
+        // 清理事件订阅以防止内存泄漏
+        SystemEvents.UserPreferenceChanged -= SystemEventsOnUserPreferenceChanged;
+        if (RegistryNotifier != null)
+        {
+            RegistryNotifier.RegistryKeyUpdated -= RegistryNotifierOnRegistryKeyUpdated;
+            RegistryNotifier.Stop();
+        }
+        
+        UpdateTimer.Stop();
+        SettingsService.Settings.PropertyChanged -= SettingsServiceOnPropertyChanged;
+        UpdateTimer.Tick -= UpdateTimerOnTick;
+        
+        return;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

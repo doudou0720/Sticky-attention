@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Text;
 using System.Windows.Documents;
 using System.Windows.Markup;
@@ -11,10 +11,12 @@ public static class RichTextBoxHelper
     {
         try
         {
-            var stream = new MemoryStream(Encoding.UTF8.GetBytes(xaml));
-            var doc = (FlowDocument)XamlReader.Load(stream);
-            doc.IsOptimalParagraphEnabled = true;
-            return doc;
+            using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(xaml)))
+            {
+                var doc = (FlowDocument)XamlReader.Load(stream);
+                doc.IsOptimalParagraphEnabled = true;
+                return doc;
+            }
         }
         catch (Exception)
         {

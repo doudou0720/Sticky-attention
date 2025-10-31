@@ -11,6 +11,9 @@
     <SpaProxyLaunchCommand>npm start</SpaProxyLaunchCommand>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>StickyHomeworks</RootNamespace>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>StickyHomeworks.Web</AssemblyName>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
   </PropertyGroup>
   
   <ItemGroup>

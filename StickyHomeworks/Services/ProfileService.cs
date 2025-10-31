@@ -18,7 +18,13 @@ public class ProfileService : IHostedService, INotifyPropertyChanged
         LoadProfile();
         //CleanupOutdated();
         //applicationLifetime.ApplicationStopping.Register(SaveProfile);
-        Profile.PropertyChanged += (sender, args) => SaveProfile();
+        Profile.PropertyChanged += ProfileOnPropertyChanged;
+    }
+
+    // 用于处理Profile属性变化事件的方法
+    private void ProfileOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        SaveProfile();
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -47,8 +53,12 @@ public class ProfileService : IHostedService, INotifyPropertyChanged
         var r = JsonSerializer.Deserialize<Profile>(json);
         if (r != null)
         {
+            // 先移除旧的事件处理程序（如果有的话）
+            _profile.PropertyChanged -= ProfileOnPropertyChanged;
+            
             Profile = r;
-            Profile.PropertyChanged += (sender, args) => SaveProfile();
+            // 为新Profile添加事件处理程序
+            Profile.PropertyChanged += ProfileOnPropertyChanged;
         }
     }
 

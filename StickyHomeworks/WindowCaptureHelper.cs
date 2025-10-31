@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Drawing;
 using System.Runtime.InteropServices;
 
@@ -53,20 +53,32 @@ namespace ClassIsland
             int width = windowRect.Right - windowRect.Left;
             int height = windowRect.Bottom - windowRect.Top;
 
-            IntPtr hDCMem = CreateCompatibleDC(IntPtr.Zero);
-            IntPtr hBitmap = CreateCompatibleBitmap(GetWindowDC(hWnd), width, height);
+            IntPtr windowDC = GetWindowDC(hWnd);
+            IntPtr hDCMem = CreateCompatibleDC(windowDC);
+            IntPtr hBitmap = CreateCompatibleBitmap(windowDC, width, height);
             IntPtr hOldBitmap = SelectObject(hDCMem, hBitmap);
 
-            // 使用PrintWindow捕获窗口的客户区
-            PrintWindow(hWnd, hDCMem, PW_CLIENTONLY);
+            try
+            {
+                // 使用PrintWindow捕获窗口的客户区
+                PrintWindow(hWnd, hDCMem, PW_CLIENTONLY);
 
-            Bitmap bitmap = Image.FromHbitmap(hBitmap);
-            SelectObject(hDCMem, hOldBitmap);
-            DeleteObject(hBitmap);
-            DeleteDC(hDCMem);
-            ReleaseDC(hWnd, GetWindowDC(hWnd));
-
-            return bitmap;
+                // 创建一个Bitmap副本，确保我们可以安全地释放GDI资源
+                using (Bitmap tempBitmap = Image.FromHbitmap(hBitmap))
+                {
+                    // 创建一个新的Bitmap来返回，这样我们就可以释放原始资源
+                    Bitmap resultBitmap = new Bitmap(tempBitmap);
+                    return resultBitmap;
+                }
+            }
+            finally
+            {
+                // 清理GDI资源
+                SelectObject(hDCMem, hOldBitmap);
+                DeleteObject(hBitmap);
+                DeleteDC(hDCMem);
+                ReleaseDC(hWnd, windowDC);
+            }
         }
     }
 }

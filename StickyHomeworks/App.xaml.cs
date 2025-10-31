@@ -39,9 +39,30 @@ public partial class App : AppEx
     private ToolStripMenuItem showMainWindowItem; // 定义菜单项
 
     private System.Timers.Timer _memoryUsageTimer;
+
     public static string AppVersion => Assembly.GetExecutingAssembly().GetName().Version!.ToString();
 
-    public static string FullAppVersion { get; set; } = "v" + AppVersion; // 默认使用程序集版本
+    // 使用完整版本号，包括预发布标签
+    public static string FullAppVersion { get; set; } = "v" + Assembly.GetExecutingAssembly().GetName().Version!.ToString(); // 默认使用程序集版本
+    
+    // 静态构造函数，在应用程序启动时设置完整版本号
+    static App()
+    {
+        // 从程序集信息中获取完整版本号
+        var assembly = Assembly.GetExecutingAssembly();
+        var version = assembly.GetName().Version;
+        
+        // 如果有自定义属性包含完整版本号，则使用它
+        var customAttributes = assembly.GetCustomAttributes(typeof(AssemblyInformationalVersionAttribute), false);
+        if (customAttributes.Length > 0)
+        {
+            FullAppVersion = ((AssemblyInformationalVersionAttribute)customAttributes[0]).InformationalVersion;
+        }
+        else
+        {
+            FullAppVersion = "v" + version.ToString();
+        }
+    }
 
     [DllImport("kernel32.dll")]
     private static extern IntPtr GetConsoleWindow();
@@ -271,6 +292,7 @@ public partial class App : AppEx
 
             if (settings.GrpcEnabled)
             {
+                // 修改为正确的Web服务可执行文件名
                 var webServicePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "StickyHomeworks.Web.exe");
                 if (File.Exists(webServicePath))
                 {
@@ -296,7 +318,34 @@ public partial class App : AppEx
                 }
                 else
                 {
-                    LogHelper.Error("Web service executable not found: " + webServicePath);
+                    // 检查是否有带版本号的Web服务可执行文件
+                    var webServiceFiles = Directory.GetFiles(AppDomain.CurrentDomain.BaseDirectory, "StickyHomeworks.Web*.exe");
+                    if (webServiceFiles.Length > 0)
+                    {
+                        var startInfo = new ProcessStartInfo
+                        {
+                            FileName = webServiceFiles[0], // 使用找到的第一个匹配文件
+                            UseShellExecute = false,
+                            RedirectStandardOutput = true,
+                            RedirectStandardError = true,
+                            CreateNoWindow = true,
+                            WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory
+                        };
+
+                        // 添加配置参数
+                        if (!settings.GrpcEnabled)
+                            startInfo.ArgumentList.Add("--EnableGrpcService=false");
+                        
+                        if (settings.GrpcPort != 5001)
+                            startInfo.ArgumentList.Add($"--GrpcPort={settings.GrpcPort}");
+
+                        _webServiceProcess = Process.Start(startInfo);
+                        LogHelper.Info("Web service started successfully");
+                    }
+                    else
+                    {
+                        LogHelper.Error("Web service executable not found: " + webServicePath);
+                    }
                 }
             }
             else

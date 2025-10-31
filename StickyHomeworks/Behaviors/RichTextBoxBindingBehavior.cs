@@ -1,4 +1,4 @@
-﻿using Microsoft.Xaml.Behaviors;
+using Microsoft.Xaml.Behaviors;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
@@ -12,18 +12,25 @@ public class RichTextBoxBindingBehavior : Behavior<RichTextBox>
 
     protected override void OnAttached()
     {
-        AssociatedObject.TextChanged += (obj2, e2) =>
-        {
-            var sw = new Stopwatch();
-            sw.Start();
-            RichTextBox richTextBox2 = obj2 as RichTextBox;
-            if (richTextBox2 != null)
-            {
-                SetDocumentXaml(this, XamlWriter.Save(richTextBox2.Document));
-            }
-
-        };
+        AssociatedObject.TextChanged += AssociatedObjectOnTextChanged;
         base.OnAttached();
+    }
+
+    protected override void OnDetaching()
+    {
+        AssociatedObject.TextChanged -= AssociatedObjectOnTextChanged;
+        base.OnDetaching();
+    }
+
+    private void AssociatedObjectOnTextChanged(object sender, TextChangedEventArgs e)
+    {
+        var sw = new Stopwatch();
+        sw.Start();
+        RichTextBox richTextBox2 = sender as RichTextBox;
+        if (richTextBox2 != null)
+        {
+            SetDocumentXaml(this, XamlWriter.Save(richTextBox2.Document));
+        }
     }
 
     public static string GetDocumentXaml(DependencyObject obj)

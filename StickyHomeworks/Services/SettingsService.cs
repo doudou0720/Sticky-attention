@@ -25,28 +25,36 @@ public class SettingsService : ObservableRecipient, IHostedService
     {
         _saveTimer?.Stop();
         _saveTimer = new System.Timers.Timer(500); // 延迟 500 毫秒
-        _saveTimer.Elapsed += (sender, args) =>
-        {
-            SaveSettings();
-            _saveTimer?.Dispose();
-            _saveTimer = null;
-            
-            // 如果需要重启，提示用户
-            if (_restartRequired)
-            {
-                _restartRequired = false;
-                LogHelper.Info("设置已更改，某些功能需要重启应用程序才能生效。");
-            }
-        };
+        _saveTimer.Elapsed += SaveTimerOnElapsed;
         _saveTimer.Start();
+    }
+
+    private void SaveTimerOnElapsed(object? sender, System.Timers.ElapsedEventArgs e)
+    {
+        SaveSettings();
+        _saveTimer?.Stop();
+        _saveTimer?.Dispose();
+        _saveTimer = null;
+
+        // 如果需要重启，提示用户
+        if (_restartRequired)
+        {
+            _restartRequired = false;
+            LogHelper.Info("设置已更改，某些功能需要重启应用程序才能生效。");
+        }
     }
 
     public SettingsService(IHostApplicationLifetime applicationLifetime)
     {
         PropertyChanged += OnPropertyChanged;
-        Settings.PropertyChanged += (o, args) => OnSettingsChanged?.Invoke(o, args);
+        Settings.PropertyChanged += SettingsOnPropertyChanged;
         LoadSettingsSafeAsync();
         OnSettingsChanged += OnOnSettingsChanged;
+    }
+
+    private void SettingsOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        OnSettingsChanged?.Invoke(sender, e);
     }
 
     private void OnOnSettingsChanged(object? sender, PropertyChangedEventArgs e)
@@ -99,7 +107,13 @@ public class SettingsService : ObservableRecipient, IHostedService
                 {
                     lock (_lockObject)
                     {
+                        // 移除旧的事件处理程序
+                        _settings.PropertyChanged -= SettingsOnPropertyChanged;
+                        
                         Settings = settings;
+                        
+                        // 为新Settings添加事件处理程序
+                        Settings.PropertyChanged += SettingsOnPropertyChanged;
                     }
                 }
             }
@@ -152,7 +166,10 @@ public class SettingsService : ObservableRecipient, IHostedService
     {
         if (e.PropertyName == nameof(Settings))
         {
-            Settings.PropertyChanged += (o, args) => OnSettingsChanged?.Invoke(o, args);
+            // 移除旧的事件处理程序
+            _settings.PropertyChanged -= SettingsOnPropertyChanged;
+            
+            Settings.PropertyChanged += SettingsOnPropertyChanged;
         }
     }
 

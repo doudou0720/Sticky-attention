@@ -15,7 +15,7 @@ jobs:
 
     strategy:
       matrix:
-        runtime: [win-x64, win-x86]
+        runtime: [win-x64, win-x86, no-runtime]
         selfContained: [true]
 
     steps:
@@ -37,26 +37,72 @@ jobs:
         "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
       shell: pwsh
 
-    - name: Update App.xaml.cs with full version info
+    - name: Parse version components
+      id: version_components
       run: |
-        $filePath = "StickyHomeworks/App.xaml.cs"
-        $content = Get-Content $filePath -Raw
-        $content = $content -replace 'public static string FullAppVersion { get; set; } = "v" \+ AppVersion;', "public static string FullAppVersion { get; set; } = `"$env:tag`";"
-        Set-Content $filePath $content
+        $tag = "${{ steps.version.outputs.tag }}"
+        # 移除可能的 "v" 前缀
+        if ($tag.StartsWith("v")) {
+          $tag = $tag.Substring(1)
+        }
+        
+        # 分离主版本号和预发布标签
+        $parts = $tag -split '-', 2
+        $version = $parts[0]
+        if ($parts.Length -gt 1) {
+          $preRelease = $parts[1]
+          "preRelease=$preRelease" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+        } else {
+          "preRelease=" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+        }
+        
+        "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
       shell: pwsh
 
     - name: Install dependencies
       run: dotnet restore
 
-    - name: Build project
+    - name: Build Web project
       run: |
-        dotnet publish StickyHomeworks/StickyHomeworks.csproj -c Release -r ${{ matrix.runtime }} --self-contained true -p:PublishSingleFile=true -o ./publish-${{ matrix.runtime }}/
+        $informationalVersion = "${{ steps.version.outputs.tag }}"
+        $version = "${{ steps.version_components.outputs.version }}"
+        if ("${{ matrix.runtime }}" -eq "no-runtime") {
+          dotnet publish StickyHomeworks.Web/StickyHomeworks.Web.csproj -c Release --self-contained ${{ matrix.selfContained }} -p:PublishSingleFile=true -p:Version=$version -p:InformationalVersion=$informationalVersion -o ./publish-web/
+        } else {
+          dotnet publish StickyHomeworks.Web/StickyHomeworks.Web.csproj -c Release -r ${{ matrix.runtime }} --self-contained ${{ matrix.selfContained }} -p:PublishSingleFile=true -p:Version=$version -p:InformationalVersion=$informationalVersion -o ./publish-web-${{ matrix.runtime }}/
+        }
+      shell: pwsh
+
+    - name: Build main project
+      run: |
+        $informationalVersion = "${{ steps.version.outputs.tag }}"
+        $version = "${{ steps.version_components.outputs.version }}"
+        if ("${{ matrix.runtime }}" -eq "no-runtime") {
+          dotnet publish StickyHomeworks/StickyHomeworks.csproj -c Release --self-contained ${{ matrix.selfContained }} -p:PublishSingleFile=true -p:Version=$version -p:InformationalVersion=$informationalVersion -o ./publish/
+        } else {
+          dotnet publish StickyHomeworks/StickyHomeworks.csproj -c Release -r ${{ matrix.runtime }} --self-contained ${{ matrix.selfContained }} -p:PublishSingleFile=true -p:Version=$version -p:InformationalVersion=$informationalVersion -o ./publish-${{ matrix.runtime }}/
+        }
+      shell: pwsh
+
+    - name: Copy Web executable to main output
+      run: |
+        if ("${{ matrix.runtime }}" -eq "no-runtime") {
+          Copy-Item -Path "./publish-web/StickyHomeworks.Web.exe" -Destination "./publish/"
+        } else {
+          Copy-Item -Path "./publish-web-${{ matrix.runtime }}/StickyHomeworks.Web.exe" -Destination "./publish-${{ matrix.runtime }}/"
+        }
+      shell: pwsh
 
     - name: Create release archives
       run: |
         $version = "${{ steps.version.outputs.tag }}"
-        cd publish-${{ matrix.runtime }}
-        Compress-Archive -Path * -DestinationPath ../sticky-attentions-forked-$version-${{ matrix.runtime }}.zip
+        if ("${{ matrix.runtime }}" -eq "no-runtime") {
+          cd publish
+          Compress-Archive -Path * -DestinationPath ../sticky-attentions-forked-$version.zip
+        } else {
+          cd publish-${{ matrix.runtime }}
+          Compress-Archive -Path * -DestinationPath ../sticky-attentions-forked-$version-${{ matrix.runtime }}.zip
+        }
       shell: pwsh
 
     - name: Upload assets to release
@@ -65,6 +111,7 @@ jobs:
       with:
         tag_name: ${{ steps.version.outputs.tag }}
         files: |
+          sticky-attentions-forked-${{ steps.version.outputs.tag }}.zip
           sticky-attentions-forked-${{ steps.version.outputs.tag }}-*.zip
         prerelease: ${{ github.event.release.prerelease || false }}
       env:
@@ -75,4 +122,6 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: sticky-attentions-forked-${{ steps.version.outputs.tag }}-${{ matrix.runtime }}
-        path: sticky-attentions-forked-${{ steps.version.outputs.tag }}-${{ matrix.runtime }}.zip
+        path: |
+          sticky-attentions-forked-${{ steps.version.outputs.tag }}.zip
+          sticky-attentions-forked-${{ steps.version.outputs.tag }}-${{ matrix.runtime }}.zip

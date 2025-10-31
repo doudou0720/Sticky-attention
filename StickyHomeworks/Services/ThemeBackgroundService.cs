@@ -1,4 +1,4 @@
-﻿using ClassIsland.Services;
+using ClassIsland.Services;
 using ElysiaFramework;
 using ElysiaFramework.Interfaces;
 using Microsoft.Extensions.Hosting;
@@ -92,6 +92,11 @@ namespace StickyHomeworks.Services
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
+            // 清理事件订阅以防止内存泄漏
+            SettingsService.OnSettingsChanged -= SettingsServiceOnSettingsChanged;
+            SystemEvents.UserPreferenceChanged -= SystemEventsOnUserPreferenceChanged;
+            WallpaperPickingService.WallpaperColorPlatteChanged -= WallpaperPickingServiceOnWallpaperColorPlatteChanged;
+            
             return Task.CompletedTask;
         }
     }
