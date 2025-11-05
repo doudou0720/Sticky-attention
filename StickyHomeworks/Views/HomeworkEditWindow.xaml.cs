@@ -26,6 +26,8 @@ namespace StickyHomeworks.Views;
 public partial class HomeworkEditWindow : Window, INotifyPropertyChanged
 {
     private RichTextBox _relatedRichTextBox = new();
+    // 移除双击检测相关的字段
+    
     public MainWindow MainWindow { get; }
     public SettingsService SettingsService { get; }
     public ICommand AddImageCommand { get; }
@@ -191,6 +193,51 @@ public partial class HomeworkEditWindow : Window, INotifyPropertyChanged
     {
         richTextBox.TextChanged += RichTextBoxOnTextChanged;
         richTextBox.SelectionChanged += RichTextBoxOnSelectionChanged;
+        richTextBox.PreviewMouseLeftButtonDown += RichTextBoxOnPreviewMouseLeftButtonDown;
+        richTextBox.PreviewMouseMove += RichTextBoxOnPreviewMouseMove;
+        richTextBox.PreviewMouseLeftButtonUp += RichTextBoxOnPreviewMouseLeftButtonUp;
+    }
+
+    private bool _isSelecting = false;
+    private Point _startPoint;
+
+    private void RichTextBoxOnPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        var richTextBox = sender as RichTextBox;
+        if (richTextBox == null) return;
+
+        _startPoint = e.GetPosition(richTextBox);
+        _isSelecting = true;
+        richTextBox.CaptureMouse();
+    }
+
+    private void RichTextBoxOnPreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        var richTextBox = sender as RichTextBox;
+        if (richTextBox == null || !_isSelecting) return;
+
+        var currentPosition = e.GetPosition(richTextBox);
+        
+        // 只有当鼠标移动一定距离时才开始选择文本
+        if (Math.Abs(currentPosition.X - _startPoint.X) > 2 || Math.Abs(currentPosition.Y - _startPoint.Y) > 2)
+        {
+            var startPointer = richTextBox.GetPositionFromPoint(_startPoint, true);
+            var currentPointer = richTextBox.GetPositionFromPoint(currentPosition, true);
+            
+            if (startPointer != null && currentPointer != null)
+            {
+                richTextBox.Selection.Select(startPointer, currentPointer);
+            }
+        }
+    }
+
+    private void RichTextBoxOnPreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        var richTextBox = sender as RichTextBox;
+        if (richTextBox == null || !_isSelecting) return;
+
+        _isSelecting = false;
+        richTextBox.ReleaseMouseCapture();
     }
 
     private void RichTextBoxOnSelectionChanged(object sender, RoutedEventArgs e)
@@ -257,6 +304,9 @@ public partial class HomeworkEditWindow : Window, INotifyPropertyChanged
     {
         richTextBox.TextChanged -= RichTextBoxOnTextChanged;
         richTextBox.SelectionChanged -= RichTextBoxOnSelectionChanged;
+        richTextBox.PreviewMouseLeftButtonDown -= RichTextBoxOnPreviewMouseLeftButtonDown;
+        richTextBox.PreviewMouseMove -= RichTextBoxOnPreviewMouseMove;
+        richTextBox.PreviewMouseLeftButtonUp -= RichTextBoxOnPreviewMouseLeftButtonUp;
     }
 
     private void ListBoxTextStyles_OnSelectionChanged(object sender, SelectionChangedEventArgs e)

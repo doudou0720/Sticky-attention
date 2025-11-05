@@ -731,6 +731,29 @@ namespace StickyHomeworks
 
         private async void ButtonExport_OnClick(object sender, RoutedEventArgs e)
         {
+            // 创建导出格式选择菜单
+            var contextMenu = new ContextMenu();
+            
+            // 添加导出为图片选项
+            var exportToImage = new MenuItem { Header = "导出为图片 (.png)" };
+            exportToImage.Click += async (s, args) => await ExportToImage();
+            contextMenu.Items.Add(exportToImage);
+            
+            // 添加导出为Markdown选项
+            var exportToMarkdown = new MenuItem { Header = "导出为 Markdown (.md)" };
+            exportToMarkdown.Click += async (s, args) => await ExportToMarkdown();
+            contextMenu.Items.Add(exportToMarkdown);
+            
+            // 显示菜单
+            contextMenu.PlacementTarget = sender as UIElement;
+            contextMenu.IsOpen = true;
+        }
+
+        /// <summary>
+        /// 导出为图片
+        /// </summary>
+        private async Task ExportToImage()
+        {
             // 设置视图模型 IsWorking 属性为 true，表示当前正在处理导出操作
             ViewModel.IsWorking = true;
 
@@ -745,7 +768,7 @@ namespace StickyHomeworks
             var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
             dialog.FileName = $"Export_{timestamp}.png"; // 自动填写文件名
 
-            // 显示文件保存对话框，并检查是否点击了“保存”按钮
+            // 显示文件保存对话框，并检查是否点击了"保存"按钮
             if (dialog.ShowDialog() != System.Windows.Forms.DialogResult.OK)
             {
                 goto done;
@@ -841,7 +864,93 @@ namespace StickyHomeworks
             ViewModel.IsWorking = false;
         }
 
+        /// <summary>
+        /// 导出为Markdown格式
+        /// </summary>
+        private async Task ExportToMarkdown()
+        {
+            // 初始化一个文件保存对话框组件
+            var dialog = new System.Windows.Forms.SaveFileDialog()
+            {
+                // 设置对话框中显示的文件类型过滤器
+                Filter = "Markdown 文件 (*.md)|*.md"
+            };
 
+            // 生成一个默认的文件名，包含时间戳
+            var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            dialog.FileName = $"Export_{timestamp}.md"; // 自动填写文件名
+
+            // 显示文件保存对话框，并检查是否点击了"保存"按钮
+            if (dialog.ShowDialog() != System.Windows.Forms.DialogResult.OK)
+            {
+                dialog.Dispose();
+                return;
+            }
+
+            // 获取用户选择的文件保存路径
+            var file = dialog.FileName;
+            dialog.Dispose();
+
+            try
+            {
+                // 创建StringBuilder用于构建Markdown内容
+                var markdownContent = new StringBuilder();
+                
+                // 添加标题
+                markdownContent.AppendLine("# 作业列表");
+                markdownContent.AppendLine();
+                
+                // 按科目分组作业
+                var homeworksBySubject = ProfileService.Profile.Homeworks
+                    .GroupBy(h => h.Subject)
+                    .ToDictionary(g => g.Key, g => g.ToList());
+                
+                // 遍历每个科目
+                foreach (var subjectGroup in homeworksBySubject)
+                {
+                    // 添加科目标题
+                    markdownContent.AppendLine($"## {subjectGroup.Key}");
+                    markdownContent.AppendLine();
+                    
+                    // 遍历该科目的所有作业
+                    foreach (var homework in subjectGroup.Value)
+                    {
+                        // 添加作业信息
+                        markdownContent.AppendLine($"- 截止日期: {homework.DueTime:yyyy-MM-dd}");
+                        
+                        // 如果有标签，添加标签信息
+                        if (homework.Tags.Any())
+                        {
+                            markdownContent.AppendLine($"- 标签: {string.Join(", ", homework.Tags)}");
+                        }
+                        
+                        // 添加作业内容（处理换行）
+                        var contentLines = homework.Content.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                        if (contentLines.Length > 0)
+                        {
+                            markdownContent.AppendLine("- 内容:");
+                            foreach (var line in contentLines)
+                            {
+                                markdownContent.AppendLine($"  {line}");
+                            }
+                        }
+                        
+                        markdownContent.AppendLine();
+                    }
+                }
+                
+                // 写入文件
+                await File.WriteAllTextAsync(file, markdownContent.ToString());
+                
+                // 显示成功消息
+                await ShowExportSuccessMessage(file);
+            }
+            catch (Exception ex)
+            {
+                // 如果在导出过程中发生异常，将异常信息添加到 SnackbarMessageQueue 中显示
+                ViewModel.SnackbarMessageQueue.Enqueue($"Markdown导出失败：{ex.Message}");
+            }
+        }
 
         private async void AutoExport()
         {
