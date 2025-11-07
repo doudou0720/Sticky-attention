@@ -1,10 +1,11 @@
-﻿using ElysiaFramework;
+using ElysiaFramework;
 using StickyHomeworks.Models;
 using StickyHomeworks.Views;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 
 namespace StickyHomeworks.Controls;
 
@@ -23,11 +24,12 @@ public partial class HomeworkControl : UserControl
     }
 
     public static readonly DependencyProperty IsSelectedProperty = DependencyProperty.Register(
-        nameof(IsSelected), typeof(bool), typeof(HomeworkControl), new PropertyMetadata(default(bool), (o, args) =>
-        {
-            var c = o as HomeworkControl;
-            c?.IsSelectedChanged((bool)args.NewValue);
-        }));
+        nameof(IsSelected), typeof(bool), typeof(HomeworkControl), new PropertyMetadata(default(bool),
+            (o, args) =>
+            {
+                var c = o as HomeworkControl;
+                c?.IsSelectedChanged((bool)args.NewValue);
+            }));
 
     public bool IsSelected
     {
@@ -43,16 +45,24 @@ public partial class HomeworkControl : UserControl
                 c?.IsEditingChanged((bool)args.NewValue);
             }));
 
-
     public bool IsEditing
     {
         get { return (bool)GetValue(IsEditingProperty); }
         set { SetValue(IsEditingProperty, value); }
     }
 
+    // 触摸选择相关字段
+    private bool _isTouchSelecting = false;
+    private Point _touchStartPoint;
+
     public HomeworkControl()
     {
         InitializeComponent();
+        
+        // 注册触摸事件
+        RichTextBox.PreviewTouchDown += RichTextBox_PreviewTouchDown;
+        RichTextBox.PreviewTouchMove += RichTextBox_PreviewTouchMove;
+        RichTextBox.PreviewTouchUp += RichTextBox_PreviewTouchUp;
     }
 
     private void IsEditingChanged(bool value)
@@ -98,8 +108,53 @@ public partial class HomeworkControl : UserControl
 
     private void RichTextBox_PreviewTouchDown(object sender, TouchEventArgs e)
     {
+        _isTouchSelecting = true;
+        _touchStartPoint = e.GetTouchPoint(RichTextBox).Position;
+        RichTextBox.CaptureTouch(e.TouchDevice);
         e.Handled = true; // 阻止焦点丢失
         ((RichTextBox)sender).Focus();
     }
 
+    private void RichTextBox_PreviewTouchMove(object sender, TouchEventArgs e)
+    {
+        if (!_isTouchSelecting) return;
+
+        var richTextBox = sender as RichTextBox;
+        if (richTextBox == null) return;
+
+        var currentPosition = e.GetTouchPoint(RichTextBox).Position;
+        
+        // 只有当触摸移动一定距离时才开始选择文本
+        if (Math.Abs(currentPosition.X - _touchStartPoint.X) > 5 || Math.Abs(currentPosition.Y - _touchStartPoint.Y) > 5)
+        {
+            var startPointer = richTextBox.GetPositionFromPoint(_touchStartPoint, true);
+            var currentPointer = richTextBox.GetPositionFromPoint(currentPosition, true);
+            
+            if (startPointer != null && currentPointer != null)
+            {
+                richTextBox.Selection.Select(startPointer, currentPointer);
+            }
+        }
+        
+        e.Handled = true;
+    }
+
+    private void RichTextBox_PreviewTouchUp(object sender, TouchEventArgs e)
+    {
+        _isTouchSelecting = false;
+        RichTextBox.ReleaseTouchCapture(e.TouchDevice);
+        e.Handled = true;
+    }
+
+    protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
+    {
+        // 防止触摸事件被鼠标事件干扰
+        if (_isTouchSelecting)
+        {
+            e.Handled = true;
+            return;
+        }
+        
+        base.OnPreviewMouseDown(e);
+    }
 }

@@ -352,7 +352,10 @@
                                                     <TextBlock Text="{Binding Name}" FontSize="20" FontWeight="Bold" 
                                                               PreviewMouseLeftButtonDown="SubjectHeader_PreviewMouseLeftButtonDown"
                                                               PreviewMouseLeftButtonUp="SubjectHeader_PreviewMouseLeftButtonUp"
-                                                              MouseMove="SubjectHeader_MouseMove"/>
+                                                              MouseMove="SubjectHeader_MouseMove"
+                                                              TouchDown="SubjectHeader_TouchDown"
+                                                              TouchMove="SubjectHeader_TouchMove"
+                                                              TouchUp="SubjectHeader_TouchUp"/>
                                                     <ItemsPresenter />
                                                 </StackPanel>
                                             </ControlTemplate>

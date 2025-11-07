@@ -38,9 +38,15 @@ namespace StickyHomeworks
     {
         private PropertyChangedEventHandler ViewModelOnPropertyChanged;
 
-        // 添加拖拽排序相关字段
+        // 添加拖拽排序相关字段（鼠标）
         private Point _startPoint;
         private bool _isDragging;
+        
+        // 添加拖拽排序相关字段（触摸）
+        private bool _isTouchDragging; // 触摸拖拽状态
+        private Point _touchStartPoint;
+        private bool _touchMoved;
+
         private TimeSpan _longPressDuration = TimeSpan.FromMilliseconds(500); // 长按时间
         private DispatcherTimer? _longPressTimer;
         private string _draggedSubject = "";
@@ -1179,6 +1185,13 @@ namespace StickyHomeworks
         /// </summary>
         private void SubjectHeader_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
+            // 如果正在进行触摸拖拽，则忽略鼠标事件
+            if (_isTouchDragging)
+            {
+                e.Handled = true;
+                return;
+            }
+
             if (sender is TextBlock textBlock)
             {
                 _startPoint = e.GetPosition(null);
@@ -1195,13 +1208,24 @@ namespace StickyHomeworks
                     _longPressTimer!.Stop();
                     // 长按触发，准备拖拽
                     _isDragging = true;
-                    // 可以在这里添加视觉反馈，比如改变光标样式
+                    // 改变光标样式表示可拖拽
                     Mouse.OverrideCursor = Cursors.Hand;
                     
-                    // 简单的视觉反馈 - 改变背景色
-                    _draggedTextBlock!.Background = new SolidColorBrush(Colors.LightBlue);
+                    // 添加轻微震动效果表示进入拖拽模式
+                    var storyboard = new Storyboard();
+                    var animation = new DoubleAnimationUsingKeyFrames();
+                    Storyboard.SetTarget(animation, textBlock);
+                    Storyboard.SetTargetProperty(animation, new PropertyPath("(UIElement.RenderTransform).(TranslateTransform.X)"));
                     
+                    // 创建震动动画关键帧
+                    animation.KeyFrames.Add(new EasingDoubleKeyFrame(0, TimeSpan.FromSeconds(0)));
+                    animation.KeyFrames.Add(new EasingDoubleKeyFrame(2, TimeSpan.FromSeconds(0.05)));
+                    animation.KeyFrames.Add(new EasingDoubleKeyFrame(-2, TimeSpan.FromSeconds(0.1)));
+                    animation.KeyFrames.Add(new EasingDoubleKeyFrame(0, TimeSpan.FromSeconds(0.15)));
                     
+                    storyboard.Children.Add(animation);
+                    textBlock.RenderTransform = new TranslateTransform();
+                    storyboard.Begin();
                 };
                 _longPressTimer.Start();
             }
@@ -1221,11 +1245,9 @@ namespace StickyHomeworks
             // 清除视觉效果
             if (_draggedTextBlock != null)
             {
-                _draggedTextBlock.Background = null;
+                _draggedTextBlock.RenderTransform = null;
                 _draggedTextBlock = null;
             }
-            
-            
         }
 
         /// <summary>
@@ -1239,14 +1261,14 @@ namespace StickyHomeworks
             Point currentPoint = e.GetPosition(null);
             Vector diff = _startPoint - currentPoint;
 
-            // 只有当鼠标移动超过一定距离时才开始拖拽
+            // 只有当鼠标移动超过系统定义的最小拖拽距离时才开始拖拽
             if (Math.Abs(diff.X) > SystemParameters.MinimumHorizontalDragDistance ||
                 Math.Abs(diff.Y) > SystemParameters.MinimumVerticalDragDistance)
             {
                 // 执行拖拽排序逻辑
                 PerformSubjectSorting(_draggedSubject, currentPoint);
                 
-                // 重置状态
+                // 重置拖拽状态
                 _longPressTimer?.Stop();
                 _isDragging = false;
                 Mouse.OverrideCursor = null;
@@ -1254,10 +1276,125 @@ namespace StickyHomeworks
                 // 清除视觉效果
                 if (_draggedTextBlock != null)
                 {
-                    _draggedTextBlock.Background = null;
+                    _draggedTextBlock.RenderTransform = null;
                     _draggedTextBlock = null;
                 }
             }
+        }
+
+        // 触摸事件处理
+        /// <summary>
+        /// 当科目标题触摸按下时调用
+        /// 实现长按拖拽排序功能
+        /// </summary>
+        private void SubjectHeader_TouchDown(object sender, TouchEventArgs e)
+        {
+            // 停止任何正在进行的鼠标拖拽
+            _longPressTimer?.Stop();
+            _isDragging = false;
+            
+            if (sender is TextBlock textBlock)
+            {
+                _touchStartPoint = e.GetTouchPoint(null).Position;
+                _touchMoved = false;
+                _draggedSubject = textBlock.Text;
+                _draggedTextBlock = textBlock;
+                _isTouchDragging = true;
+                
+                // 启动长按计时器
+                _longPressTimer = new DispatcherTimer
+                {
+                    Interval = _longPressDuration
+                };
+                _longPressTimer.Tick += (s, args) =>
+                {
+                    _longPressTimer!.Stop();
+                    // 长按触发，准备拖拽
+                    // 添加轻微震动效果表示进入拖拽模式
+                    var storyboard = new Storyboard();
+                    var animation = new DoubleAnimationUsingKeyFrames();
+                    Storyboard.SetTarget(animation, textBlock);
+                    Storyboard.SetTargetProperty(animation, new PropertyPath("(UIElement.RenderTransform).(TranslateTransform.X)"));
+                    
+                    // 创建震动动画关键帧
+                    animation.KeyFrames.Add(new EasingDoubleKeyFrame(0, TimeSpan.FromSeconds(0)));
+                    animation.KeyFrames.Add(new EasingDoubleKeyFrame(2, TimeSpan.FromSeconds(0.05)));
+                    animation.KeyFrames.Add(new EasingDoubleKeyFrame(-2, TimeSpan.FromSeconds(0.1)));
+                    animation.KeyFrames.Add(new EasingDoubleKeyFrame(0, TimeSpan.FromSeconds(0.15)));
+                    
+                    storyboard.Children.Add(animation);
+                    textBlock.RenderTransform = new TranslateTransform();
+                    storyboard.Begin();
+                };
+                _longPressTimer.Start();
+                
+                textBlock.CaptureTouch(e.TouchDevice);
+            }
+            e.Handled = true;
+        }
+
+        /// <summary>
+        /// 当科目标题触摸移动时调用
+        /// 检测是否开始拖拽并执行排序
+        /// </summary>
+        private void SubjectHeader_TouchMove(object sender, TouchEventArgs e)
+        {
+            if (!_isTouchDragging) return;
+
+            Point currentPoint = e.GetTouchPoint(null).Position;
+            Vector diff = _touchStartPoint - currentPoint;
+            
+            // 标记触摸已移动
+            if (Math.Abs(diff.X) > 5 || Math.Abs(diff.Y) > 5)
+            {
+                _touchMoved = true;
+            }
+
+            // 只有当触摸移动超过一定距离时才开始拖拽
+            if (Math.Abs(diff.X) > SystemParameters.MinimumHorizontalDragDistance ||
+                Math.Abs(diff.Y) > SystemParameters.MinimumVerticalDragDistance)
+            {
+                // 停止长按计时器
+                _longPressTimer?.Stop();
+                
+                // 执行拖拽排序逻辑
+                PerformSubjectSorting(_draggedSubject, currentPoint);
+                
+                // 重置拖拽状态
+                _isTouchDragging = false;
+                
+                // 清除视觉效果
+                if (_draggedTextBlock != null)
+                {
+                    _draggedTextBlock.RenderTransform = null;
+                    _draggedTextBlock = null;
+                }
+            }
+            e.Handled = true;
+        }
+
+        /// <summary>
+        /// 当科目标题触摸释放时调用
+        /// 清理拖拽状态
+        /// </summary>
+        private void SubjectHeader_TouchUp(object sender, TouchEventArgs e)
+        {
+            // 停止长按计时器
+            _longPressTimer?.Stop();
+            _isTouchDragging = false;
+            
+            // 清除视觉效果
+            if (_draggedTextBlock != null)
+            {
+                _draggedTextBlock.RenderTransform = null;
+                _draggedTextBlock = null;
+            }
+            
+            if (sender is TextBlock textBlock)
+            {
+                textBlock.ReleaseTouchCapture(e.TouchDevice);
+            }
+            e.Handled = true;
         }
 
         /// <summary>

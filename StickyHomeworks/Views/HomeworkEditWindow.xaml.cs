@@ -26,7 +26,16 @@ namespace StickyHomeworks.Views;
 public partial class HomeworkEditWindow : Window, INotifyPropertyChanged
 {
     private RichTextBox _relatedRichTextBox = new();
-    // 移除双击检测相关的字段
+    private DateTime _lastClickTime = DateTime.MinValue;
+    private Point _lastClickPosition = new Point(0, 0);
+    
+    // 触摸选择相关字段
+    private bool _isTouchSelecting = false;
+    private Point _touchStartPoint;
+    
+    // 鼠标选择相关字段
+    private bool _isSelecting = false;
+    private Point _startPoint;
     
     public MainWindow MainWindow { get; }
     public SettingsService SettingsService { get; }
@@ -196,23 +205,139 @@ public partial class HomeworkEditWindow : Window, INotifyPropertyChanged
         richTextBox.PreviewMouseLeftButtonDown += RichTextBoxOnPreviewMouseLeftButtonDown;
         richTextBox.PreviewMouseMove += RichTextBoxOnPreviewMouseMove;
         richTextBox.PreviewMouseLeftButtonUp += RichTextBoxOnPreviewMouseLeftButtonUp;
+        
+        // 注册触摸事件
+        richTextBox.PreviewTouchDown += RichTextBoxOnPreviewTouchDown;
+        richTextBox.PreviewTouchMove += RichTextBoxOnPreviewTouchMove;
+        richTextBox.PreviewTouchUp += RichTextBoxOnPreviewTouchUp;
     }
 
-    private bool _isSelecting = false;
-    private Point _startPoint;
+    private void UnregisterOldTextBox(RichTextBox richTextBox)
+    {
+        richTextBox.TextChanged -= RichTextBoxOnTextChanged;
+        richTextBox.SelectionChanged -= RichTextBoxOnSelectionChanged;
+        richTextBox.PreviewMouseLeftButtonDown -= RichTextBoxOnPreviewMouseLeftButtonDown;
+        richTextBox.PreviewMouseMove -= RichTextBoxOnPreviewMouseMove;
+        richTextBox.PreviewMouseLeftButtonUp -= RichTextBoxOnPreviewMouseLeftButtonUp;
+        
+        // 注销触摸事件
+        richTextBox.PreviewTouchDown -= RichTextBoxOnPreviewTouchDown;
+        richTextBox.PreviewTouchMove -= RichTextBoxOnPreviewTouchMove;
+        richTextBox.PreviewTouchUp -= RichTextBoxOnPreviewTouchUp;
+    }
 
     private void RichTextBoxOnPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        // 如果正在处理触摸事件，则忽略鼠标事件
+        if (_isTouchSelecting)
+        {
+            e.Handled = true;
+            return;
+        }
+
         var richTextBox = sender as RichTextBox;
         if (richTextBox == null) return;
 
-        _startPoint = e.GetPosition(richTextBox);
-        _isSelecting = true;
-        richTextBox.CaptureMouse();
+        var currentTime = DateTime.Now;
+        var currentPosition = e.GetPosition(richTextBox);
+
+        // 检查是否在短时间内点击了相同位置（双击）
+        if ((currentTime - _lastClickTime).TotalMilliseconds < 500 && 
+            Math.Abs(currentPosition.X - _lastClickPosition.X) < 2 && 
+            Math.Abs(currentPosition.Y - _lastClickPosition.Y) < 2)
+        {
+            // 获取点击位置的文本指针
+            var pointer = richTextBox.GetPositionFromPoint(currentPosition, true);
+            if (pointer != null)
+            {
+                // 查找单词边界
+                var start = pointer;
+                var end = pointer;
+
+                // 向前查找单词开始位置
+                while (start.CompareTo(richTextBox.Document.ContentStart) > 0)
+                {
+                    start = start.GetPositionAtOffset(-1);
+                    if (start == null) break;
+                    
+                    var charBefore = start.GetPointerContext(LogicalDirection.Forward);
+                    if (charBefore == TextPointerContext.Text)
+                    {
+                        var textRun = start.GetTextInRun(LogicalDirection.Forward);
+                        if (textRun.Length > 0 && char.IsWhiteSpace(textRun[0]))
+                        {
+                            start = start.GetPositionAtOffset(1); // 移动到非空格字符
+                            break;
+                        }
+                    }
+                    else if (charBefore != TextPointerContext.Text)
+                    {
+                        start = start.GetPositionAtOffset(1); // 移动到文本开始
+                        break;
+                    }
+                }
+
+                // 向后查找单词结束位置
+                while (end.CompareTo(richTextBox.Document.ContentEnd) < 0)
+                {
+                    var charAfter = end.GetPointerContext(LogicalDirection.Forward);
+                    if (charAfter == TextPointerContext.Text)
+                    {
+                        var textRun = end.GetTextInRun(LogicalDirection.Forward);
+                        if (textRun.Length > 0)
+                        {
+                            if (char.IsWhiteSpace(textRun[0]))
+                            {
+                                break;
+                            }
+                            end = end.GetPositionAtOffset(1);
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                    else if (charAfter == TextPointerContext.ElementEnd || charAfter == TextPointerContext.ElementStart)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        end = end.GetPositionAtOffset(1);
+                    }
+                }
+
+                // 选择找到的文本
+                if (start != null && end != null && start.CompareTo(end) < 0)
+                {
+                    richTextBox.Selection.Select(start, end);
+                }
+            }
+
+            // 重置双击检测状态
+            _lastClickTime = DateTime.MinValue;
+        }
+        else
+        {
+            // 更新上次点击时间和位置
+            _lastClickTime = currentTime;
+            _lastClickPosition = currentPosition;
+            
+            // 开始鼠标选择
+            _startPoint = e.GetPosition(richTextBox);
+            _isSelecting = true;
+            richTextBox.CaptureMouse();
+        }
     }
 
     private void RichTextBoxOnPreviewMouseMove(object sender, MouseEventArgs e)
     {
+        // 如果正在处理触摸事件，则忽略鼠标事件
+        if (_isTouchSelecting || !_isSelecting) 
+        {
+            return;
+        }
+
         var richTextBox = sender as RichTextBox;
         if (richTextBox == null || !_isSelecting) return;
 
@@ -233,11 +358,67 @@ public partial class HomeworkEditWindow : Window, INotifyPropertyChanged
 
     private void RichTextBoxOnPreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
+        // 如果正在处理触摸事件，则忽略鼠标事件
+        if (_isTouchSelecting)
+        {
+            return;
+        }
+
         var richTextBox = sender as RichTextBox;
         if (richTextBox == null || !_isSelecting) return;
 
         _isSelecting = false;
         richTextBox.ReleaseMouseCapture();
+    }
+
+    // 触摸事件处理
+    private void RichTextBoxOnPreviewTouchDown(object sender, TouchEventArgs e)
+    {
+        // 停止任何正在进行的鼠标选择
+        _isSelecting = false;
+        
+        var richTextBox = sender as RichTextBox;
+        if (richTextBox == null) return;
+
+        _touchStartPoint = e.GetTouchPoint(richTextBox).Position;
+        _isTouchSelecting = true;
+        richTextBox.CaptureTouch(e.TouchDevice);
+        e.Handled = true;
+    }
+
+    private void RichTextBoxOnPreviewTouchMove(object sender, TouchEventArgs e)
+    {
+        if (!_isTouchSelecting) return;
+
+        var richTextBox = sender as RichTextBox;
+        if (richTextBox == null) return;
+
+        var currentPosition = e.GetTouchPoint(richTextBox).Position;
+        
+        // 只有当触摸移动一定距离时才开始选择文本
+        if (Math.Abs(currentPosition.X - _touchStartPoint.X) > 5 || Math.Abs(currentPosition.Y - _touchStartPoint.Y) > 5)
+        {
+            var startPointer = richTextBox.GetPositionFromPoint(_touchStartPoint, true);
+            var currentPointer = richTextBox.GetPositionFromPoint(currentPosition, true);
+            
+            if (startPointer != null && currentPointer != null)
+            {
+                richTextBox.Selection.Select(startPointer, currentPointer);
+            }
+        }
+        
+        e.Handled = true;
+    }
+
+    private void RichTextBoxOnPreviewTouchUp(object sender, TouchEventArgs e)
+    {
+        _isTouchSelecting = false;
+        var richTextBox = sender as RichTextBox;
+        if (richTextBox != null)
+        {
+            richTextBox.ReleaseTouchCapture(e.TouchDevice);
+        }
+        e.Handled = true;
     }
 
     private void RichTextBoxOnSelectionChanged(object sender, RoutedEventArgs e)
@@ -300,15 +481,6 @@ public partial class HomeworkEditWindow : Window, INotifyPropertyChanged
     {
     }
 
-    private void UnregisterOldTextBox(RichTextBox richTextBox)
-    {
-        richTextBox.TextChanged -= RichTextBoxOnTextChanged;
-        richTextBox.SelectionChanged -= RichTextBoxOnSelectionChanged;
-        richTextBox.PreviewMouseLeftButtonDown -= RichTextBoxOnPreviewMouseLeftButtonDown;
-        richTextBox.PreviewMouseMove -= RichTextBoxOnPreviewMouseMove;
-        richTextBox.PreviewMouseLeftButtonUp -= RichTextBoxOnPreviewMouseLeftButtonUp;
-    }
-
     private void ListBoxTextStyles_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (ViewModel.IsRestoringSelection)
@@ -345,75 +517,11 @@ public partial class HomeworkEditWindow : Window, INotifyPropertyChanged
 
     private void ButtonEditingDone_OnClick(object sender, RoutedEventArgs e)
     {
+        // 完成编辑，关闭窗口
+        TryClose();
         EditingFinished?.Invoke(this, EventArgs.Empty);
-        BackupSettingsJson();
-        AppEx.GetService<ProfileService>().SaveProfile();
-        this.Hide();
     }
 
-    private async Task BackupSettingsJson()
-    {
-        await Task.Delay(3000);
-        if (SettingsService.Settings.Writbackup)
-        {
-
-            try
-            {
-                // 定义备份文件夹路径
-                string folderName = "SA-AutoBackup";
-                string settings_folderName = "Settings-Backups";
-                string currentDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".config");
-                string backupBaseDirectory = Path.Combine(currentDirectory, folderName, settings_folderName);
-
-                // 源文件路径
-                string sourceFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".config", "Settings.json");
-
-                // 确保源文件存在
-                if (!File.Exists(sourceFilePath))
-                {
-                    LogHelper.Warning("Settings.json 文件不存在");
-                    MessageBox.Show("Settings.json 文件不存在");
-                    return;
-                }
-
-                // 生成基于时间戳的文件夹名称
-                string timestampFolderName = DateTime.Now.ToString("yyyyMMddHHmmss");
-                string backupDirectory = Path.Combine(backupBaseDirectory, timestampFolderName);
-
-                // 如果备份文件夹不存在，则创建
-                if (!Directory.Exists(backupDirectory))
-                {
-                    Directory.CreateDirectory(backupDirectory);
-                }
-
-                // 定义备份文件路径（保持文件名不变）
-                string backupFilePath = Path.Combine(backupDirectory, "Settings.json");
-
-                // 复制文件到备份文件夹
-                File.Copy(sourceFilePath, backupFilePath, true);
-
-                // 验证备份文件的完整性
-                if (!ValidateBackupFile(backupFilePath))
-                {
-                    LogHelper.Error("setting文件已损坏。");
-                    MessageBox.Show("setting文件已损坏。");
-                    return;
-                }
-
-                LogHelper.Info($"Settings.json 已成功备份到: {backupFilePath}");
-            }
-            catch (Exception ex)
-            {
-                LogHelper.Error($"无法备份 Settings.json: {ex.Message}");
-                MessageBox.Show($"无法备份 Settings.json: {ex.Message}");
-            }
-        }
-        else
-        {
-            LogHelper.Warning("Writbackup为false，备份被终止!");
-        }
-
-    }
 
     private bool ValidateBackupFile(string backupFilePath)
     {
@@ -524,15 +632,18 @@ public partial class HomeworkEditWindow : Window, INotifyPropertyChanged
 
     private void CenterWindowOnScreen()
     {
-        var screen = System.Windows.Forms.Screen.FromPoint(new System.Drawing.Point((int)Left, (int)Top));
-        var workingArea = screen.WorkingArea;
+        var screenWidth = SystemParameters.PrimaryScreenWidth;
+        var screenHeight = SystemParameters.PrimaryScreenHeight;
 
-        Left = workingArea.X + (workingArea.Width - ActualWidth) / 2;
-        Top = workingArea.Y + (workingArea.Height - ActualHeight) / 2;
+        // 计算窗口的中心位置
+        Left = (screenWidth - ActualWidth) / 2;
+        Top = (screenHeight - ActualHeight) / 2;
 
         // 确保窗口在屏幕内
-        Left = Math.Max(workingArea.X, Math.Min(Left, workingArea.Right - ActualWidth));
-        Top = Math.Max(workingArea.Y, Math.Min(Top, workingArea.Bottom - ActualHeight));
+        if (Left < 0) Left = 0;
+        if (Top < 0) Top = 0;
+        if (Left + ActualWidth > screenWidth) Left = screenWidth - ActualWidth;
+        if (Top + ActualHeight > screenHeight) Top = screenHeight - ActualHeight;
     }
 
     //private void EmojiButton_Click(object sender, RoutedEventArgs e)
