@@ -21,7 +21,7 @@ public class SettingsService : ObservableRecipient, IHostedService
         ExitWithoutSaving();
     }
 
-    private void ScheduleSaveSettings()
+    public void ScheduleSaveSettings()
     {
         _saveTimer?.Stop();
         _saveTimer = new System.Timers.Timer(500); // 延迟 500 毫秒

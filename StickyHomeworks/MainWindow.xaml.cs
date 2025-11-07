@@ -4,25 +4,30 @@ using StickyHomeworks.Models;
 using StickyHomeworks.Services;
 using StickyHomeworks.ViewModels;
 using StickyHomeworks.Views;
+using StickyHomeworks;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Net;
+using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Data;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
-using DataFormats = System.Windows.DataFormats;
-using System.Runtime.InteropServices;
-using DragEventArgs = System.Windows.DragEventArgs;
-using StickyHomeworks;
-using static StickyHomeworks.App;
-using System.Text.Json;
-using System.Threading.Tasks;
-using System.Text;
+using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.Win32;
+using StickyHomeworks.Controls;
+using WindowsShortcutFactory;
 
 namespace StickyHomeworks
 {
@@ -32,6 +37,14 @@ namespace StickyHomeworks
     public partial class MainWindow : Window
     {
         private PropertyChangedEventHandler ViewModelOnPropertyChanged;
+
+        // 添加拖拽排序相关字段
+        private Point _startPoint;
+        private bool _isDragging;
+        private TimeSpan _longPressDuration = TimeSpan.FromMilliseconds(500); // 长按时间
+        private DispatcherTimer? _longPressTimer;
+        private string _draggedSubject = "";
+        private TextBlock? _draggedTextBlock;
 
         public MainViewModel ViewModel { get; set; } = new MainViewModel();
 
@@ -118,8 +131,6 @@ namespace StickyHomeworks
             ViewModel.PropertyChanging += ViewModelOnPropertyChanging;
             DataContext = this;
             Application.Current.Exit += OnApplicationExits;
-            LogHelper.Info($"主界面初始化完成！" +
-                $"");
             //删除那一坨备份
             string folderName = "SA-AutoBackup";
             string currentDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".config");
@@ -157,13 +168,12 @@ namespace StickyHomeworks
                 double actualY = this.Top;
 
                 // 比较位置
-                if (Math.Abs(actualX - expectedX) < 1 && Math.Abs(actualY - expectedY) < 1)
+                if (Math.Abs(expectedX - actualX) < 1 && Math.Abs(expectedY - actualY) < 1)
                 {
-                    LogHelper.Info("窗口位置与设置一致");
-                }
+                    }
                 else
                 {
-                    LogHelper.Warning($"窗口位置不一致，设置位置: ({expectedX}, {expectedY})，实际位置: ({actualX}, {actualY})");
+                    CheckAndCorrectWindowPosition();
                 }
 
                 timer.Stop();
@@ -172,7 +182,17 @@ namespace StickyHomeworks
         }
 
 
-        
+        private void CheckAndCorrectWindowPosition()
+        {
+            // 获取当前 DPI
+            GetCurrentDpi(out var dpi, out _);
+            // 根据保存的窗口位置和当前 DPI 设置窗口的位置
+            Left = SettingsService.Settings.WindowX / dpi;
+            Top = SettingsService.Settings.WindowY / dpi;
+            Width = SettingsService.Settings.WindowWidth / dpi;
+            Height = SettingsService.Settings.WindowHeight / dpi;
+           
+        }
 
         //1.事件处理器来保存窗口位置 防止用户手动从任务管理器关闭软件而导致的无法保存位置（可能无效）
         private void OnApplicationExit(object sender, CancelEventArgs e)
@@ -307,18 +327,18 @@ namespace StickyHomeworks
                     {
                         // 删除文件夹及其内容
                         subDir.Delete(true);
-                        ViewModel.SnackbarMessageQueue.Enqueue($"删除备份: {subDir.FullName}");
+                        //ViewModel.SnackbarMessageQueue.Enqueue($"删除备份: {subDir.FullName}");
                     }
                     catch (Exception ex)
                     {
                         // 处理可能的异常，例如权限问题
-                        ViewModel.SnackbarMessageQueue.Enqueue($"无法备份文件夹 {subDir.FullName}. 原因: {ex.Message}");
+                        //ViewModel.SnackbarMessageQueue.Enqueue($"无法备份文件夹 {subDir.FullName}. 原因: {ex.Message}");
                     }
                 }
             }
             ViewModel.IsWorking = false;
         }
-        protected void OnInitialized(EventArgs e)
+        protected override async void OnInitialized(EventArgs e)
         {
             // 初始化时清理过期作业
             ViewModel.ExpiredHomeworks = ProfileService.CleanupOutdated();
@@ -333,10 +353,14 @@ namespace StickyHomeworks
         //防止最小化开始处
         private void MainWindow_StateChanged(object sender, EventArgs e)
         {
-            if (WindowState == WindowState.Minimized)
+            if (WindowState == WindowState.Minimized && SettingsService.Settings.MinimizeToTray)
             {
-                // 如果检测到窗口被最小化，立即还原
-                WindowState = WindowState.Normal;
+                Hide();
+                
+            }
+            else if (WindowState == WindowState.Normal)
+            {
+                
             }
         }
 
@@ -394,7 +418,6 @@ namespace StickyHomeworks
                     // 强制恢复窗口状态
                     WindowState = WindowState.Normal;
                     handled = true;
-                    LogHelper.Info($"成功");
                 }
             }
             return IntPtr.Zero;
@@ -420,7 +443,6 @@ namespace StickyHomeworks
                 if ((Keyboard.IsKeyDown(Key.LeftAlt) && vkCode == 0x20)) // Alt 或 Win 键
                 {
                     return (IntPtr)1; // 阻止按键
-                    LogHelper.Info($"成功");
                 }
             }
             return CallNextHookEx(_hookID, nCode, wParam, lParam);
@@ -612,7 +634,23 @@ namespace StickyHomeworks
             editWindow.ShowAtMousePosition(); // 在鼠标右侧打开窗口
         }
 
+        private void EditButton_Click(object sender, RoutedEventArgs e)
+        {
+            //LogHelper.Info($"编辑窗口OK");
+            // 点击编辑作业按钮，触发编辑事件
+            OnHomeworkEditorUpdated?.Invoke(this, EventArgs.Empty);
+            ViewModel.IsCreatingMode = false;
 
+            if (ViewModel.SelectedHomework == null)
+                return;
+
+            ViewModel.EditingHomework = ViewModel.SelectedHomework;
+            ViewModel.IsDrawerOpened = true;
+
+            // 获取 HomeworkEditWindow 的实例并设置窗口位置
+            var editWindow = AppEx.GetService<HomeworkEditWindow>();
+            editWindow.ShowAtMousePosition(); // 在鼠标右侧打开窗口
+        }
 
         private void ButtonRemoveHomework_OnClick(object sender, RoutedEventArgs e)
         {
@@ -1063,7 +1101,6 @@ namespace StickyHomeworks
                 ViewModel.IsWorking = true;
                 // 显示失败信息
                 ViewModel.SnackbarMessageQueue.Enqueue($"导出失败：{ex.Message}");
-                LogHelper.Error($"导出失败：{ex.Message}");
             }
             finally
             {
@@ -1134,6 +1171,163 @@ namespace StickyHomeworks
         {
             // 点击更多按钮，打开更多选项的弹出窗口
             PopupExAdvanced.IsOpen = true;
+        }
+
+        /// <summary>
+        /// 当科目标题预览鼠标左键按下时调用
+        /// 实现长按拖拽排序功能
+        /// </summary>
+        private void SubjectHeader_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is TextBlock textBlock)
+            {
+                _startPoint = e.GetPosition(null);
+                _draggedSubject = textBlock.Text;
+                _draggedTextBlock = textBlock;
+                
+                // 启动长按计时器
+                _longPressTimer = new DispatcherTimer
+                {
+                    Interval = _longPressDuration
+                };
+                _longPressTimer.Tick += (s, args) =>
+                {
+                    _longPressTimer!.Stop();
+                    // 长按触发，准备拖拽
+                    _isDragging = true;
+                    // 可以在这里添加视觉反馈，比如改变光标样式
+                    Mouse.OverrideCursor = Cursors.Hand;
+                    
+                    // 简单的视觉反馈 - 改变背景色
+                    _draggedTextBlock!.Background = new SolidColorBrush(Colors.LightBlue);
+                    
+                    
+                };
+                _longPressTimer.Start();
+            }
+        }
+
+        /// <summary>
+        /// 当科目标题预览鼠标左键释放时调用
+        /// 清理拖拽状态
+        /// </summary>
+        private void SubjectHeader_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            // 停止长按计时器
+            _longPressTimer?.Stop();
+            _isDragging = false;
+            Mouse.OverrideCursor = null;
+            
+            // 清除视觉效果
+            if (_draggedTextBlock != null)
+            {
+                _draggedTextBlock.Background = null;
+                _draggedTextBlock = null;
+            }
+            
+            
+        }
+
+        /// <summary>
+        /// 当科目标题鼠标移动时调用
+        /// 检测是否开始拖拽并执行排序
+        /// </summary>
+        private void SubjectHeader_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (!_isDragging || e.LeftButton != MouseButtonState.Pressed) return;
+
+            Point currentPoint = e.GetPosition(null);
+            Vector diff = _startPoint - currentPoint;
+
+            // 只有当鼠标移动超过一定距离时才开始拖拽
+            if (Math.Abs(diff.X) > SystemParameters.MinimumHorizontalDragDistance ||
+                Math.Abs(diff.Y) > SystemParameters.MinimumVerticalDragDistance)
+            {
+                // 执行拖拽排序逻辑
+                PerformSubjectSorting(_draggedSubject, currentPoint);
+                
+                // 重置状态
+                _longPressTimer?.Stop();
+                _isDragging = false;
+                Mouse.OverrideCursor = null;
+                
+                // 清除视觉效果
+                if (_draggedTextBlock != null)
+                {
+                    _draggedTextBlock.Background = null;
+                    _draggedTextBlock = null;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 执行科目排序操作
+        /// 将指定科目移动到新的位置
+        /// </summary>
+        private void PerformSubjectSorting(string draggedSubject, Point currentPosition)
+        {
+            // 获取当前所有科目的顺序
+            var subjects = SettingsService.Settings.Subjects.ToList();
+            
+            // 找到被拖拽科目的当前索引
+            int draggedIndex = subjects.IndexOf(draggedSubject);
+            if (draggedIndex == -1) return;
+            
+            // 计算应该插入的新位置
+            int newIndex = CalculateNewIndexForSubject(currentPosition, subjects, draggedSubject);
+            
+            if (newIndex != draggedIndex && newIndex >= 0 && newIndex <= subjects.Count)
+            {
+                // 移动科目
+                var subjectToMove = subjects[draggedIndex];
+                subjects.RemoveAt(draggedIndex);
+                subjects.Insert(newIndex, subjectToMove);
+                
+                // 更新设置中的科目顺序
+                SettingsService.Settings.Subjects = new System.Collections.ObjectModel.ObservableCollection<string>(subjects);
+                
+                // 触发UI刷新
+                CollectionViewSource.GetDefaultView(MainListView.ItemsSource)?.Refresh();
+                
+                // 显示成功消息
+                ViewModel.SnackbarMessageQueue.Enqueue($"已将科目'{draggedSubject}'移动到新位置");
+                
+                // 触发设置保存
+                SettingsService.ScheduleSaveSettings();
+                
+                // 记录日志
+                // LogHelper.Info($"科目'{draggedSubject}'已从位置{draggedIndex}移动到位置{newIndex}");
+            }
+            else
+            {
+                // 位置未改变
+                // LogHelper.Info($"科目'{draggedSubject}'位置未发生改变");
+            }
+        }
+        
+        /// <summary>
+        /// 根据鼠标位置计算科目应该插入的新索引
+        /// 使用更简单可靠的方法，基于平均高度计算
+        /// </summary>
+        private int CalculateNewIndexForSubject(Point mousePosition, List<string> subjects, string draggedSubject)
+        {
+            // 获取MainListView在屏幕上的位置
+            Point listViewPosition = MainListView.PointToScreen(new Point(0, 0));
+            // 转换为相对于窗口的坐标
+            listViewPosition = PointFromScreen(listViewPosition);
+            
+            // 计算每个科目块的平均高度
+            double avgSubjectHeight = MainListView.ActualHeight / Math.Max(1, subjects.Count);
+            
+            // 根据鼠标Y位置计算新索引
+            // 减去listViewPosition.Y以获得相对于ListView的Y坐标
+            int newIndex = (int)((mousePosition.Y - listViewPosition.Y) / avgSubjectHeight);
+            
+            // 确保索引有效
+            // newIndex可以等于subjects.Count（插入到最后）
+            newIndex = Math.Max(0, Math.Min(subjects.Count, newIndex));
+            
+            return newIndex;
         }
 
         private void MainListView_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -1263,12 +1457,11 @@ namespace StickyHomeworks
                 homeworkEditWindow.Top = top;
 
                 Debug.WriteLine($"Repositioned HomeworkEditWindow to: Left={left}, Top={top}");
-               LogHelper.Info($"编辑窗口OK");
             }
             catch (Exception e)
             {
                 // 处理可能发生的异常
-                Debug.WriteLine($"Error repositioning the editing window: {e.Message}");
+                //Debug.WriteLine($"Error repositioning the editing window: {e.Message}");
             }
 
         }
@@ -1297,7 +1490,8 @@ namespace StickyHomeworks
                     // 确保源文件存在
                     if (!File.Exists(sourceFilePath))
                     {
-                        LogHelper.Warning("Settings.json 文件不存在");
+                        // 显示警告消息
+                        ViewModel.SnackbarMessageQueue.Enqueue("Settings.json 文件不存在");
                         MessageBox.Show("Settings.json 文件不存在");
                         return;
                     }
@@ -1321,22 +1515,25 @@ namespace StickyHomeworks
                     // 验证备份文件的完整性
                     if (!ValidateBackupFile(backupFilePath))
                     {
-                        LogHelper.Error("setting文件已损坏。");
+                        // 显示错误消息
+                        ViewModel.SnackbarMessageQueue.Enqueue("setting文件已损坏。");
                         MessageBox.Show("setting文件已损坏。");
                         return;
                     }
 
-                    LogHelper.Info($"Settings.json 已成功备份到: {backupFilePath}");
+                    // 显示成功消息
+                    ViewModel.SnackbarMessageQueue.Enqueue($"Settings.json 已成功备份到: {backupFilePath}");
                 }
                 catch (Exception ex)
                 {
-                    LogHelper.Error($"无法备份 Settings.json: {ex.Message}");
+                    // 显示错误消息
+                    ViewModel.SnackbarMessageQueue.Enqueue($"无法备份 Settings.json: {ex.Message}");
                     MessageBox.Show($"无法备份 Settings.json: {ex.Message}");
                 }
             }
             else
             {
-                LogHelper.Warning("Backupst为false，备份被终止!");
+                ViewModel.SnackbarMessageQueue.Enqueue("Backupst为false，备份被终止!");
             }
             
         }
@@ -1369,13 +1566,63 @@ namespace StickyHomeworks
             }
             catch (Exception ex)
             {
-                LogHelper.Error($"验证备份文件 {backupFilePath} 失败：{ex.Message}");
+                // 显示错误消息
+                ViewModel.SnackbarMessageQueue.Enqueue($"验证备份文件 {backupFilePath} 失败：{ex.Message}");
                 return false;
             }
         }
 
+        private async void ImportDataFromSettingsJson()
+        {
+            string settingsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".config", "Settings.json");
 
+            if (!File.Exists(settingsPath))
+            {
+                // 显示警告消息
+                ViewModel.SnackbarMessageQueue.Enqueue("Settings.json 文件不存在");
+                MessageBox.Show("Settings.json 文件不存在");
+            }
+            else
+            {
+                try
+                {
+                    string json = File.ReadAllText(settingsPath);
+                    dynamic settings = Newtonsoft.Json.JsonConvert.DeserializeObject(json);
 
+                    // 获取设置中的窗口位置
+                    int expectedX = settings.WindowX;
+                    int expectedY = settings.WindowY;
+
+                    DispatcherTimer timer = new DispatcherTimer();
+                    timer.Tick += (sender, e) =>
+                    {
+                        // 获取当前窗口的实际位置
+                        double actualX = this.Left;
+                        double actualY = this.Top;
+
+                        // 比较位置
+                        if (Math.Abs(expectedX - actualX) < 1 && Math.Abs(expectedY - actualY) < 1)
+                        {
+                            //LogHelper.Info("窗口位置与设置一致");
+                        }
+                        else
+                        {
+                            //LogHelper.Warning($"窗口位置不一致，设置位置: ({expectedX}, {expectedY})，实际位置: ({actualX}, {actualY})");
+                            CheckAndCorrectWindowPosition();
+                        }
+
+                        timer.Stop();
+                    };
+                    timer.Start();
+                }
+                catch (JsonException ex)
+                {
+                    // 显示错误消息
+                    ViewModel.SnackbarMessageQueue.Enqueue("setting文件已损坏。");
+                    MessageBox.Show("setting文件已损坏。");
+                }
+            }
+        }
 
         private void ButtonLock_Click(object sender, RoutedEventArgs e)
         {
@@ -1388,8 +1635,7 @@ namespace StickyHomeworks
                 ButtonLock.ToolTip = "锁定页面";
 
                
-                LogHelper.Info($"遮罩已隐藏");
-                LogHelper.Info($"窗口位置: 左={Left}, 顶={Top}");
+                
             }
             else
             {
@@ -1399,8 +1645,7 @@ namespace StickyHomeworks
                 ButtonLock.ToolTip = "解锁页面";
 
 
-                LogHelper.Info($"遮罩已显示");
-                LogHelper.Info($"窗口位置: 左={Left}, 顶={Top}");
+                
             }
         }
     }

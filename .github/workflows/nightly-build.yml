@@ -32,9 +32,21 @@ jobs:
     - name: Get version info
       id: version
       run: |
+        # 获取最近的标签作为基础版本
+        git fetch --tags
+        latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
+        # 移除可能的 "v" 前缀
+        if [[ $latest_tag == v* ]]; then
+          latest_tag=${latest_tag#v}
+        fi
+        # 分离主版本号和预发布标签
+        IFS='-' read -ra VERSION_PARTS <<< "$latest_tag"
+        base_version=${VERSION_PARTS[0]}
+        
+        echo "base_version=$base_version" >> $GITHUB_OUTPUT
         echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
         echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-        echo "full_version=v1.1.7.7-nightly-$(date +'%Y%m%d')-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        echo "full_version=v$base_version-nightly-$(date +'%Y%m%d')-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
       shell: bash
 
     - name: Calculate suffix
@@ -49,13 +61,13 @@ jobs:
 
     - name: Build Web project
       run: |
-        $version = "1.1.7.7"
+        $version = "${{ steps.version.outputs.base_version }}"
         $informationalVersion = "${{ steps.version.outputs.full_version }}"
         dotnet publish StickyHomeworks.Web/StickyHomeworks.Web.csproj -c Release -r ${{ matrix.runtime }} --self-contained ${{ matrix.selfContained }} -p:PublishSingleFile=true -p:Version=$version -p:InformationalVersion=$informationalVersion -o ./publish-web-${{ matrix.runtime }}${{ steps.suffix.outputs.suffix }}/
 
     - name: Build main project
       run: |
-        $version = "1.1.7.7"
+        $version = "${{ steps.version.outputs.base_version }}"
         $informationalVersion = "${{ steps.version.outputs.full_version }}"
         dotnet publish StickyHomeworks/StickyHomeworks.csproj -c Release -r ${{ matrix.runtime }} --self-contained ${{ matrix.selfContained }} -p:PublishSingleFile=true -p:Version=$version -p:InformationalVersion=$informationalVersion -o ./publish-${{ matrix.runtime }}${{ steps.suffix.outputs.suffix }}/
 

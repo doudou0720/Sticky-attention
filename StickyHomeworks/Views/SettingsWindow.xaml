@@ -605,15 +605,24 @@
                                             </TextBlock>
                                             <WrapPanel>
                                                 <Button HorizontalAlignment="Left" Margin="10"
-                              Style="{StaticResource MaterialDesignFlatButton}"
-                              Click="Check_for_updates" Background="#bfbfbf" BorderBrush="Transparent">
-                                                    <ely:IconText Kind="restart" Text="检查并更新"/>
-                                                </Button>
-                                            </WrapPanel>
-                                        </StackPanel>
-                                    </Grid>
-                                </StackPanel>
-                                <FlowDocumentScrollViewer ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                          Style="{StaticResource MaterialDesignFlatButton}"
+                          Click="Check_for_updates" Background="#bfbfbf" BorderBrush="Transparent">
+                                                <ely:IconText Kind="restart" Text="检查并更新"/>
+                                            </Button>
+                                        </WrapPanel>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                            <!-- 更新镜像地址设置 -->
+                            <ely:SettingsCard IconGlyph="CloudSync" Header="更新镜像地址"
+                                              Description="设置更新镜像地址，可以提高在国内网络环境下的更新下载速度。留空则使用默认GitHub地址。">
+                                <ely:SettingsCard.Switcher>
+                                    <TextBox Width="300" Foreground="{DynamicResource MaterialDesignBody}"
+                                             Text="{Binding Settings.UpdateMirrorUrl, Mode=TwoWay}"
+                                             materialDesign:HintAssist.Hint="例如：https://mirror.example.com"/>
+                                </ely:SettingsCard.Switcher>
+                            </ely:SettingsCard>
+                            <FlowDocumentScrollViewer ScrollViewer.VerticalScrollBarVisibility="Disabled"
                                        IsSelectionEnabled="False"
                                        PreviewMouseWheel="UIElement_OnPreviewMouseWheel"
                                        ContextMenu="{x:Null}">

@@ -451,6 +451,19 @@ public class Settings : ObservableRecipient
         }
     }
 
+    private bool _minimizeToTray = true;
+    
+    public bool MinimizeToTray
+    {
+        get => _minimizeToTray;
+        set
+        {
+            if (value == _minimizeToTray) return;
+            _minimizeToTray = value;
+            OnPropertyChanged();
+        }
+    }
+
     public bool Writbackup
     {
         get => _writbackup;
