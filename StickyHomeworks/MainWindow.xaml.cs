@@ -1,5 +1,6 @@
 using ElysiaFramework;
 using MaterialDesignThemes.Wpf;
+using StickyHomeworks.Controls;
 using StickyHomeworks.Models;
 using StickyHomeworks.Services;
 using StickyHomeworks.ViewModels;
@@ -999,6 +1000,7 @@ namespace StickyHomeworks
         
         /// <summary>
         /// 导出为JSON格式
+        /// TODO: 如果修改了导出结构，请同步更新 /standards/json-export-v0.md 文档
         /// </summary>
         private async Task ExportToJson()
         {
@@ -1026,6 +1028,13 @@ namespace StickyHomeworks
 
             try
             {
+                // 创建包含版本信息的导出数据
+                var exportData = new ExportData
+                {
+                    Version = 0,
+                    Homeworks = new List<Homework>(ProfileService.Profile.Homeworks)
+                };
+
                 // 序列化作业数据为JSON格式
                 var options = new JsonSerializerOptions
                 {
@@ -1033,7 +1042,7 @@ namespace StickyHomeworks
                     Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
                 };
                 
-                var jsonData = JsonSerializer.Serialize(ProfileService.Profile.Homeworks, options);
+                var jsonData = JsonSerializer.Serialize(exportData, options);
                 
                 // 写入文件
                 await File.WriteAllTextAsync(file, jsonData, Encoding.UTF8);

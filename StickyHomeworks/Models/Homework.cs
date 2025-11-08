@@ -1,4 +1,5 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
 namespace StickyHomeworks.Models;
@@ -53,4 +54,14 @@ public class Homework : ObservableRecipient
             OnPropertyChanged();
         }
     }
+}
+
+// 用于导出的包装类，包含版本信息
+// TODO: 如果修改了此结构，请同步更新 /standards 文档
+public class ExportData
+{
+    public int Version { get; set; } = 0;
+    public string Description { get; set; } = "StickyHomeworks数据导出文件";
+    public DateTime ExportDate { get; set; } = DateTime.Now;
+    public List<Homework> Homeworks { get; set; } = new();
 }
