@@ -1,7 +1,8 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ObservableObject;
 using MaterialDesignThemes.Wpf;
 using StickyHomeworks.Models;
 using System.Windows.Controls;
+using System.Threading.Tasks;
 
 namespace StickyHomeworks.ViewModels;
 
@@ -25,6 +26,18 @@ public class MainViewModel : ObservableRecipient
     private List<Homework> _expiredHomeworks = new();
     private bool _canRecoverExpireHomework = false;
     private bool _MenuItemBacktowork = true;
+
+    public MainViewModel()
+    {
+        // 初始化时不在构造函数中执行耗时操作
+    }
+
+    // 异步初始化方法
+    public async Task InitializeAsync()
+    {
+        // 在这里执行任何需要的异步初始化操作
+        await Task.CompletedTask;
+    }
 
     public Control? SelectedListBoxItem
     {

@@ -13,7 +13,7 @@
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
         TextElement.FontWeight="Regular"
         TextElement.FontSize="14"
-        FontFamily="{StaticResource LXGWWenKaiLite}"
+        FontFamily="{StaticResource LXGWWenKaiScreen}"
         Title="{Binding SettingsService.Settings.Title, Mode=OneWay}" 
         ShowInTaskbar="{Binding SettingsService.Settings.IsDebugShowInTaskBar}"
         d:DataContext="{d:DesignInstance local:MainWindow}"

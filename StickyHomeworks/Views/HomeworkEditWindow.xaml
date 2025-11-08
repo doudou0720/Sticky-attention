@@ -16,7 +16,7 @@
         d:DataContext="{d:DesignInstance local:HomeworkEditWindow}"
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
         Background="{x:Null}"
-        FontFamily="{StaticResource LXGWWenKaiLite}"
+        FontFamily="{StaticResource LXGWWenKaiScreen}"
         TextElement.FontWeight="Regular"
         TextElement.FontSize="15"
         TextOptions.TextFormattingMode="Ideal" 
@@ -254,8 +254,8 @@
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock">
                                                         <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding}" Value="{StaticResource LXGWWenKaiLite}">
-                                                                <Setter Property="Text" Value="LXGWWenKaiLite(内置)"/>
+                                                            <DataTrigger Binding="{Binding}" Value="{StaticResource LXGWWenKaiScreen}">
+                                                                <Setter Property="Text" Value="LXGWWenKaiScreen(内置)"/>
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                         <Setter Property="Text" Value="{Binding}"/>

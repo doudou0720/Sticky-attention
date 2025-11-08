@@ -171,8 +171,7 @@ public partial class HomeworkEditWindow : Window, INotifyPropertyChanged
         ViewModel.FontFamilies =
             new ObservableCollection<FontFamily>(from i in Fonts.SystemFontFamilies orderby i.ToString() select i)
                 { 
-                    FontService.DefaultFontFamily,
-                    FontService.MonoFontFamily
+                    FontService.DefaultFontFamily
                 };
         base.OnInitialized(e);
     }

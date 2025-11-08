@@ -1,4 +1,4 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ObservableObject;
 using Microsoft.Extensions.Hosting;
 using StickyHomeworks.Models;
 using System.ComponentModel;
@@ -6,6 +6,7 @@ using System.IO;
 using System.Text.Json;
 using StickyHomeworks;
 using static StickyHomeworks.App;
+using System.Threading.Tasks;
 
 namespace StickyHomeworks.Services;
 
@@ -14,6 +15,8 @@ public class SettingsService : ObservableRecipient, IHostedService
     private Settings _settings = new();
     private System.Timers.Timer? _saveTimer;
     private bool _restartRequired = false;
+    private bool _isLoaded = false;
+    private readonly SemaphoreSlim _loadSemaphore = new(1, 1);
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
@@ -48,7 +51,7 @@ public class SettingsService : ObservableRecipient, IHostedService
     {
         PropertyChanged += OnPropertyChanged;
         Settings.PropertyChanged += SettingsOnPropertyChanged;
-        LoadSettingsSafeAsync();
+        // 不再在构造函数中加载设置，改为按需加载
         OnSettingsChanged += OnOnSettingsChanged;
     }
 
@@ -67,6 +70,25 @@ public class SettingsService : ObservableRecipient, IHostedService
         }
         
         ScheduleSaveSettings();
+    }
+
+    // 异步加载设置，只加载一次
+    public async Task EnsureSettingsLoadedAsync()
+    {
+        if (_isLoaded) return;
+
+        await _loadSemaphore.WaitAsync();
+        try
+        {
+            if (_isLoaded) return;
+
+            await LoadSettingsSafeAsync();
+            _isLoaded = true;
+        }
+        finally
+        {
+            _loadSemaphore.Release();
+        }
     }
 
     public async Task LoadSettingsSafeAsync()

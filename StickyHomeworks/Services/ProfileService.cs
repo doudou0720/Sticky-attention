@@ -4,18 +4,22 @@ using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace StickyHomeworks.Services;
 
 public class ProfileService : IHostedService, INotifyPropertyChanged
 {
     private Profile _profile = new();
+    private bool _isLoaded = false;
+    private readonly SemaphoreSlim _loadSemaphore = new(1, 1);
 
     public event EventHandler? ProfileSaved;
 
     public ProfileService(IHostApplicationLifetime applicationLifetime)
     {
-        LoadProfile();
+        // 不再在构造函数中立即加载配置文件
+        //LoadProfile();
         //CleanupOutdated();
         //applicationLifetime.ApplicationStopping.Register(SaveProfile);
         Profile.PropertyChanged += ProfileOnPropertyChanged;
@@ -33,6 +37,25 @@ public class ProfileService : IHostedService, INotifyPropertyChanged
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
+    }
+
+    // 异步加载档案，只加载一次
+    public async Task EnsureProfileLoadedAsync()
+    {
+        if (_isLoaded) return;
+
+        await _loadSemaphore.WaitAsync();
+        try
+        {
+            if (_isLoaded) return;
+
+            LoadProfile();
+            _isLoaded = true;
+        }
+        finally
+        {
+            _loadSemaphore.Release();
+        }
     }
 
     public void LoadProfile()

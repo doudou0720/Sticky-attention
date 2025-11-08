@@ -21,6 +21,7 @@ using static StickyHomeworks.Controls.HomeworkControl;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace StickyHomeworks;
 
@@ -192,12 +193,13 @@ public partial class App : AppEx
 
         public static void PrintWelcomeMessage()
         {
-            string welcomeMessage = " \r\n \r\n ____  _ _      _ _   _ _   _             \r\n / ___ || | _(_) ___ | | ___   _ __ _ | | _ | | _ ___ _ __ | | _(_) ___ _ __  \r\n \\___ \\| __ | |/ __ | |/ / | | | | _____ / _` | __ | __ / _ \\ '_ \\| __| |/ _ \\| '_ \\ \r\n ___) | | _ | | (__ |   <| | _ | | _____ | (_ | | | _ | || __ / | | | | _ | | (_) | | | |\r\n | ____ / \\__ | _ |\\___ | _ |\\_\\\\__, |      \\__,_ |\\__ |\\__\\___ | _ | | _ |\\__ | _ |\\___ /| _ | | _ |\r\n | ___ /                                                 \r\n";
+            string welcomeMessage = " \r\n \r\n ____  _ _      _ _   _ _   _ _             \r\n / ___ || | _(_) ___ | | ___   _ __ _ | | _ | | _ ___ _ __ | | _(_) ___ _ __  \r\n \\___ \\| __ | |/ __ | |/ / | | | | _____ / _` | __ | __ / _ \\ '_ \\| __| |/ _ \\| '_ \\ \r\n ___) | | _ | | (__ |   <| | _ | | _____ | (_ | | | _ | || __ / | | | | _ | | (_) | | | |\r\n | ____ / \\__ | _ |\\___ | _ |\\_\\\\__, |      \\__,_ |\\__ |\\__\\___ | _ | | _ |\\__ | _ |\\___ /| _ | | _ |\r\n | ___ /                                                 \r\n";
             for (int i = 0; i < welcomeMessage.Length; i++)
             {
                 Console.ForegroundColor = Colors[i % Colors.Length];
                 Console.Write(welcomeMessage[i]);
             }
+            Console.WriteLine();
             Console.WriteLine();
         }
 
@@ -225,7 +227,7 @@ public partial class App : AppEx
         cw.OpenWindow();
     }
 
-    protected override void OnStartup(StartupEventArgs e)
+    protected override async void OnStartup(StartupEventArgs e)
     {
         LogHelper.PrintWelcomeMessage();
 
@@ -244,8 +246,8 @@ public partial class App : AppEx
 
         base.OnStartup(e);
 
-        // 启动Web服务进程
-        StartWebService();
+        // 异步启动Web服务进程，避免阻塞主线程
+        _ = Task.Run(() => StartWebService());
 
         Host = Microsoft.Extensions.Hosting.Host.
             CreateDefaultBuilder().
@@ -268,6 +270,10 @@ public partial class App : AppEx
         _ = Host.StartAsync();
         GetService<AppDbContext>();
         MainWindow = GetService<MainWindow>();
+        
+        // 等待关键服务初始化完成后再显示主窗口
+        await InitializeCriticalServices();
+        
         GetService<MainWindow>().Show();
         base.OnStartup(e);
 
@@ -281,6 +287,19 @@ public partial class App : AppEx
             Visible = true,
             ContextMenuStrip = CreateContextMenu()
         };
+    }
+
+    // 初始化关键服务
+    private async Task InitializeCriticalServices()
+    {
+        var settingsService = GetService<SettingsService>();
+        var profileService = GetService<ProfileService>();
+        
+        // 并行加载设置和档案
+        await Task.WhenAll(
+            settingsService.EnsureSettingsLoadedAsync(),
+            profileService.EnsureProfileLoadedAsync()
+        );
     }
 
     private void StartWebService()
@@ -364,7 +383,7 @@ public partial class App : AppEx
     {
         var contextMenu = new ContextMenuStrip();
 
-        // 添加“显示”菜单项，并为其单独绑定事件处理函数
+        // 添加"显示"菜单项，并为其单独绑定事件处理函数
         var showItem = new ToolStripMenuItem("隐藏或显示界面");
         showItem.Click += ShowItem_Click;
         contextMenu.Items.Add(showItem);

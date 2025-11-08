@@ -11,7 +11,7 @@
                    d:DataContext="{d:DesignInstance views:SettingsWindow}"
                    TextElement.Foreground="{DynamicResource MaterialDesignBody}"
                    Background="{DynamicResource MaterialDesignPaper}"
-                   FontFamily="{StaticResource LXGWWenKaiLite}"
+                   FontFamily="{StaticResource LXGWWenKaiScreen}"
                    TextElement.FontWeight="Regular"
                    TextElement.FontSize="14"
                    TextOptions.TextFormattingMode="Ideal" 
@@ -626,7 +626,7 @@
                                        IsSelectionEnabled="False"
                                        PreviewMouseWheel="UIElement_OnPreviewMouseWheel"
                                        ContextMenu="{x:Null}">
-                                    <FlowDocument FontFamily="{StaticResource LXGWWenKaiLite}">
+                                    <FlowDocument FontFamily="{StaticResource LXGWWenKaiScreen}">
                                         <Paragraph Style="{StaticResource MarkdownHeadline1Style}">
                                             更新日志
                                         </Paragraph>
@@ -816,7 +816,7 @@
                                                           IsSelectionEnabled="False"
                                                           PreviewMouseWheel="UIElement_OnPreviewMouseWheel"
                                                           ContextMenu="{x:Null}">
-                                    <FlowDocument FontFamily="{StaticResource LXGWWenKaiLite}">
+                                    <FlowDocument FontFamily="{StaticResource LXGWWenKaiScreen}">
                                         <Paragraph Style="{StaticResource MarkdownHeadline1Style}">
                                             关于本应用
                                         </Paragraph>
@@ -825,7 +825,7 @@
                                             <LineBreak/>
                                             界面主题和部分控件使用了WPF 框架。
                                             <LineBreak/>
-                                            应用字体使用了开源的霞鹜文楷 Lite Edition。
+                                            应用字体使用了开源的霞鹜文楷 Screen Edition。
                                             <LineBreak/>
                                             协助本应用测试的同学。
                                             <LineBreak/>

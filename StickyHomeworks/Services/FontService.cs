@@ -50,24 +50,24 @@ public static class FontService
         try
         {
             // 尝试加载自定义字体
-            _defaultFontFamily = (FontFamily)Application.Current.FindResource("LXGWWenKaiLite");
+            _defaultFontFamily = (FontFamily)Application.Current.FindResource("LXGWWenKaiScreen");
         }
         catch (Exception ex)
         {
             // 如果自定义字体加载失败，使用系统默认中文字体
-            System.Diagnostics.Debug.WriteLine($"Failed to load LXGWWenKaiLite font: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Failed to load LXGWWenKaiScreen font: {ex.Message}");
             _defaultFontFamily = new FontFamily("Microsoft YaHei UI");
         }
 
         try
         {
             // 尝试加载等宽字体
-            _monoFontFamily = (FontFamily)Application.Current.FindResource("LXGWWenKaiMonoLite");
+            _monoFontFamily = (FontFamily)Application.Current.FindResource("LXGWWenKaiMono");
         }
         catch (Exception ex)
         {
             // 如果等宽字体加载失败，使用系统默认等宽字体
-            System.Diagnostics.Debug.WriteLine($"Failed to load LXGWWenKaiMonoLite font: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Failed to load LXGWWenKaiMono font: {ex.Message}");
             _monoFontFamily = new FontFamily("Consolas");
         }
 

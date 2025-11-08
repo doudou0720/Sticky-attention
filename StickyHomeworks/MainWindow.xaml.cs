@@ -24,10 +24,11 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
-using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ObservableObject;
 using Microsoft.Win32;
 using StickyHomeworks.Controls;
 using WindowsShortcutFactory;
+using System.Threading.Tasks;
 
 namespace StickyHomeworks
 {
@@ -156,35 +157,12 @@ namespace StickyHomeworks
 
             this.StateChanged += MainWindow_StateChanged;
 
-
-
-
-            string json = File.ReadAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".config", "Settings.json"));
-            dynamic settings = Newtonsoft.Json.JsonConvert.DeserializeObject(json);
-
-            // 获取设置中的窗口位置
-            int expectedX = settings.WindowX;
-            int expectedY = settings.WindowY;
-
-            DispatcherTimer timer = new DispatcherTimer();
-            timer.Tick += (sender, e) =>
+            // 异步执行窗口位置校正，避免阻塞UI线程
+            _ = Task.Run(async () =>
             {
-                // 获取当前窗口的实际位置
-                double actualX = this.Left;
-                double actualY = this.Top;
-
-                // 比较位置
-                if (Math.Abs(expectedX - actualX) < 1 && Math.Abs(expectedY - actualY) < 1)
-                {
-                    }
-                else
-                {
-                    CheckAndCorrectWindowPosition();
-                }
-
-                timer.Stop();
-            };
-            timer.Start();
+                await Task.Delay(100); // 短暂延迟确保窗口完全初始化
+                await Dispatcher.InvokeAsync(CheckAndCorrectWindowPosition);
+            });
         }
 
 
@@ -1383,12 +1361,20 @@ namespace StickyHomeworks
 
         /// <summary>
         /// 当科目标题预览鼠标左键释放时调用
-        /// 清理拖拽状态
+        /// 清理拖拽状态并执行排序
         /// </summary>
         private void SubjectHeader_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
             // 停止长按计时器
             _longPressTimer?.Stop();
+            
+            // 如果正在拖拽状态，则执行排序
+            if (_isDragging && _draggedTextBlock != null)
+            {
+                Point currentPoint = e.GetPosition(null);
+                PerformSubjectSorting(_draggedSubject, currentPoint);
+            }
+            
             _isDragging = false;
             Mouse.OverrideCursor = null;
             
@@ -1402,11 +1388,11 @@ namespace StickyHomeworks
 
         /// <summary>
         /// 当科目标题鼠标移动时调用
-        /// 检测是否开始拖拽并执行排序
+        /// 检测是否开始拖拽并提供视觉反馈
         /// </summary>
         private void SubjectHeader_MouseMove(object sender, MouseEventArgs e)
         {
-            if (!_isDragging || e.LeftButton != MouseButtonState.Pressed) return;
+            if (!_isDragging) return;
 
             Point currentPoint = e.GetPosition(null);
             Vector diff = _startPoint - currentPoint;
@@ -1415,19 +1401,32 @@ namespace StickyHomeworks
             if (Math.Abs(diff.X) > SystemParameters.MinimumHorizontalDragDistance ||
                 Math.Abs(diff.Y) > SystemParameters.MinimumVerticalDragDistance)
             {
-                // 执行拖拽排序逻辑
-                PerformSubjectSorting(_draggedSubject, currentPoint);
-                
-                // 重置拖拽状态
-                _longPressTimer?.Stop();
-                _isDragging = false;
-                Mouse.OverrideCursor = null;
-                
-                // 清除视觉效果
-                if (_draggedTextBlock != null)
+                // 如果还没有应用拖拽视觉效果，则应用
+                if (_draggedTextBlock != null && _draggedTextBlock.RenderTransform is not ScaleTransform)
                 {
-                    _draggedTextBlock.RenderTransform = null;
-                    _draggedTextBlock = null;
+                    // 添加放大和阴影效果表示正在拖拽
+                    var storyboard = new Storyboard();
+                    
+                    // 放大动画
+                    var scaleAnimation = new DoubleAnimation(1.05, TimeSpan.FromMilliseconds(150));
+                    Storyboard.SetTarget(scaleAnimation, _draggedTextBlock);
+                    Storyboard.SetTargetProperty(scaleAnimation, new PropertyPath("(UIElement.RenderTransform).(ScaleTransform.ScaleX)"));
+                    storyboard.Children.Add(scaleAnimation);
+                    
+                    var scaleAnimationY = new DoubleAnimation(1.05, TimeSpan.FromMilliseconds(150));
+                    Storyboard.SetTarget(scaleAnimationY, _draggedTextBlock);
+                    Storyboard.SetTargetProperty(scaleAnimationY, new PropertyPath("(UIElement.RenderTransform).(ScaleTransform.ScaleY)"));
+                    storyboard.Children.Add(scaleAnimationY);
+                    
+                    // 半透明效果
+                    var opacityAnimation = new DoubleAnimation(0.8, TimeSpan.FromMilliseconds(150));
+                    Storyboard.SetTarget(opacityAnimation, _draggedTextBlock);
+                    Storyboard.SetTargetProperty(opacityAnimation, new PropertyPath("Opacity"));
+                    storyboard.Children.Add(opacityAnimation);
+                    
+                    // 应用变换
+                    _draggedTextBlock.RenderTransform = new ScaleTransform(1.0, 1.0);
+                    storyboard.Begin();
                 }
             }
         }
@@ -1485,7 +1484,7 @@ namespace StickyHomeworks
 
         /// <summary>
         /// 当科目标题触摸移动时调用
-        /// 检测是否开始拖拽并执行排序
+        /// 检测是否开始拖拽并提供视觉反馈
         /// </summary>
         private void SubjectHeader_TouchMove(object sender, TouchEventArgs e)
         {
@@ -1500,24 +1499,42 @@ namespace StickyHomeworks
                 _touchMoved = true;
             }
 
-            // 只有当触摸移动超过一定距离时才开始拖拽
+            // 只有当触摸移动超过系统定义的最小拖拽距离时才开始拖拽
             if (Math.Abs(diff.X) > SystemParameters.MinimumHorizontalDragDistance ||
                 Math.Abs(diff.Y) > SystemParameters.MinimumVerticalDragDistance)
             {
-                // 停止长按计时器
+                // 停止长按计时器（避免重复触发）
                 _longPressTimer?.Stop();
                 
-                // 执行拖拽排序逻辑
-                PerformSubjectSorting(_draggedSubject, currentPoint);
-                
-                // 重置拖拽状态
-                _isTouchDragging = false;
-                
-                // 清除视觉效果
-                if (_draggedTextBlock != null)
+                // 如果还没有进入拖拽状态，则开始拖拽
+                if (!_isDragging && _draggedTextBlock != null)
                 {
-                    _draggedTextBlock.RenderTransform = null;
-                    _draggedTextBlock = null;
+                    _isDragging = true;
+                    Mouse.OverrideCursor = Cursors.Hand;
+                    
+                    // 添加放大和阴影效果表示正在拖拽
+                    var storyboard = new Storyboard();
+                    
+                    // 放大动画
+                    var scaleAnimation = new DoubleAnimation(1.05, TimeSpan.FromMilliseconds(150));
+                    Storyboard.SetTarget(scaleAnimation, _draggedTextBlock);
+                    Storyboard.SetTargetProperty(scaleAnimation, new PropertyPath("(UIElement.RenderTransform).(ScaleTransform.ScaleX)"));
+                    storyboard.Children.Add(scaleAnimation);
+                    
+                    var scaleAnimationY = new DoubleAnimation(1.05, TimeSpan.FromMilliseconds(150));
+                    Storyboard.SetTarget(scaleAnimationY, _draggedTextBlock);
+                    Storyboard.SetTargetProperty(scaleAnimationY, new PropertyPath("(UIElement.RenderTransform).(ScaleTransform.ScaleY)"));
+                    storyboard.Children.Add(scaleAnimationY);
+                    
+                    // 半透明效果
+                    var opacityAnimation = new DoubleAnimation(0.8, TimeSpan.FromMilliseconds(150));
+                    Storyboard.SetTarget(opacityAnimation, _draggedTextBlock);
+                    Storyboard.SetTargetProperty(opacityAnimation, new PropertyPath("Opacity"));
+                    storyboard.Children.Add(opacityAnimation);
+                    
+                    // 应用变换
+                    _draggedTextBlock.RenderTransform = new ScaleTransform(1.0, 1.0);
+                    storyboard.Begin();
                 }
             }
             e.Handled = true;
@@ -1525,20 +1542,58 @@ namespace StickyHomeworks
 
         /// <summary>
         /// 当科目标题触摸释放时调用
-        /// 清理拖拽状态
+        /// 执行排序并清理拖拽状态
         /// </summary>
         private void SubjectHeader_TouchUp(object sender, TouchEventArgs e)
         {
             // 停止长按计时器
             _longPressTimer?.Stop();
-            _isTouchDragging = false;
+            
+            // 如果正在拖拽状态，则执行排序
+            if (_isDragging && _draggedTextBlock != null)
+            {
+                Point currentPoint = e.GetTouchPoint(null).Position;
+                PerformSubjectSorting(_draggedSubject, currentPoint);
+            }
+            
+            // 恢复光标
+            Mouse.OverrideCursor = null;
             
             // 清除视觉效果
             if (_draggedTextBlock != null)
             {
-                _draggedTextBlock.RenderTransform = null;
-                _draggedTextBlock = null;
+                // 创建恢复动画
+                var storyboard = new Storyboard();
+                
+                // 缩小动画
+                var scaleAnimation = new DoubleAnimation(1.0, TimeSpan.FromMilliseconds(100));
+                Storyboard.SetTarget(scaleAnimation, _draggedTextBlock);
+                Storyboard.SetTargetProperty(scaleAnimation, new PropertyPath("(UIElement.RenderTransform).(ScaleTransform.ScaleX)"));
+                storyboard.Children.Add(scaleAnimation);
+                
+                var scaleAnimationY = new DoubleAnimation(1.0, TimeSpan.FromMilliseconds(100));
+                Storyboard.SetTarget(scaleAnimationY, _draggedTextBlock);
+                Storyboard.SetTargetProperty(scaleAnimationY, new PropertyPath("(UIElement.RenderTransform).(ScaleTransform.ScaleY)"));
+                storyboard.Children.Add(scaleAnimationY);
+                
+                // 恢复不透明度
+                var opacityAnimation = new DoubleAnimation(1.0, TimeSpan.FromMilliseconds(100));
+                Storyboard.SetTarget(opacityAnimation, _draggedTextBlock);
+                Storyboard.SetTargetProperty(opacityAnimation, new PropertyPath("Opacity"));
+                storyboard.Children.Add(opacityAnimation);
+                
+                // 动画完成后清除变换
+                storyboard.Completed += (s, args) =>
+                {
+                    _draggedTextBlock.RenderTransform = null;
+                    _draggedTextBlock = null;
+                };
+                
+                storyboard.Begin();
             }
+            
+            _isDragging = false;
+            _isTouchDragging = false;
             
             if (sender is TextBlock textBlock)
             {

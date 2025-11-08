@@ -17,12 +17,8 @@
 
   <ItemGroup>
 	<None Remove="Assets\Fonts\HarmonyOS_Sans_SC_Black.ttf" />
-	<None Remove="Assets\Fonts\LXGWWenKaiLite-Light.ttf" />
-	<None Remove="Assets\Fonts\LXGWWenKaiLite-Medium.ttf" />
-	<None Remove="Assets\Fonts\LXGWWenKaiLite-Regular.ttf" />
-	<None Remove="Assets\Fonts\LXGWWenKaiMonoLite-Light.ttf" />
-	<None Remove="Assets\Fonts\LXGWWenKaiMonoLite-Medium.ttf" />
-	<None Remove="Assets\Fonts\LXGWWenKaiMonoLite-Regular.ttf" />
+	<None Remove="Assets\Fonts\LXGWWenKaiGBScreen.ttf" />
+	<None Remove="Assets\Fonts\LXGWWenKaiMonoGBScreen.ttf" />
   </ItemGroup>
 
   <ItemGroup>
@@ -37,12 +33,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="Assets\Fonts\LXGWWenKaiLite-Light.ttf" />
-    <Resource Include="Assets\Fonts\LXGWWenKaiLite-Medium.ttf" />
-    <Resource Include="Assets\Fonts\LXGWWenKaiLite-Regular.ttf" />
-    <Resource Include="Assets\Fonts\LXGWWenKaiMonoLite-Light.ttf" />
-    <Resource Include="Assets\Fonts\LXGWWenKaiMonoLite-Medium.ttf" />
-    <Resource Include="Assets\Fonts\LXGWWenKaiMonoLite-Regular.ttf" />
+    <Resource Include="Assets\Fonts\LXGWWenKaiGBScreen.ttf" />
+    <Resource Include="Assets\Fonts\LXGWWenKaiMonoGBScreen.ttf" />
   </ItemGroup>
 
 </Project>
