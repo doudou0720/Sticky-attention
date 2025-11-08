@@ -790,6 +790,16 @@ namespace StickyHomeworks
             exportToMarkdown.Click += async (s, args) => await ExportToMarkdown();
             contextMenu.Items.Add(exportToMarkdown);
             
+            // 添加导出为纯文本选项
+            var exportToText = new MenuItem { Header = "导出为纯文本 (.txt)" };
+            exportToText.Click += async (s, args) => await ExportToText();
+            contextMenu.Items.Add(exportToText);
+            
+            // 添加导出为JSON配置文件选项
+            var exportToJson = new MenuItem { Header = "导出为配置文件 (.json)" };
+            exportToJson.Click += async (s, args) => await ExportToJson();
+            contextMenu.Items.Add(exportToJson);
+            
             // 显示菜单
             contextMenu.PlacementTarget = sender as UIElement;
             contextMenu.IsOpen = true;
@@ -908,6 +918,146 @@ namespace StickyHomeworks
 
             // 设置视图模型的 IsWorking 属性为 false，表示导出操作已完成
             ViewModel.IsWorking = false;
+        }
+
+        /// <summary>
+        /// 导出为纯文本格式
+        /// </summary>
+        private async Task ExportToText()
+        {
+            // 初始化一个文件保存对话框组件
+            var dialog = new System.Windows.Forms.SaveFileDialog()
+            {
+                // 设置对话框中显示的文件类型过滤器
+                Filter = "文本文件 (*.txt)|*.txt"
+            };
+
+            // 生成一个默认的文件名，包含时间戳
+            var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            dialog.FileName = $"Export_{timestamp}.txt"; // 自动填写文件名
+
+            // 显示文件保存对话框，并检查是否点击了"保存"按钮
+            if (dialog.ShowDialog() != System.Windows.Forms.DialogResult.OK)
+            {
+                dialog.Dispose();
+                return;
+            }
+
+            // 获取用户选择的文件保存路径
+            var file = dialog.FileName;
+            dialog.Dispose();
+
+            try
+            {
+                // 创建StringBuilder用于构建文本内容
+                var textContent = new StringBuilder();
+                
+                // 添加标题
+                textContent.AppendLine("作业列表");
+                textContent.AppendLine("==================");
+                textContent.AppendLine();
+                
+                // 按科目分组作业
+                var homeworksBySubject = ProfileService.Profile.Homeworks
+                    .GroupBy(h => h.Subject)
+                    .ToDictionary(g => g.Key, g => g.ToList());
+                
+                // 遍历每个科目
+                foreach (var subjectGroup in homeworksBySubject)
+                {
+                    // 添加科目标题
+                    textContent.AppendLine($"{subjectGroup.Key}:");
+                    textContent.AppendLine("------------------");
+                    
+                    // 遍历该科目的所有作业
+                    foreach (var homework in subjectGroup.Value)
+                    {
+                        // 添加作业信息
+                        textContent.AppendLine($"截止日期: {homework.DueTime:yyyy-MM-dd}");
+                        
+                        // 如果有标签，添加标签信息
+                        if (homework.Tags.Any())
+                        {
+                            textContent.AppendLine($"标签: {string.Join(", ", homework.Tags)}");
+                        }
+                        
+                        // 添加作业内容（处理换行）
+                        var contentLines = homework.Content.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                        if (contentLines.Length > 0)
+                        {
+                            textContent.AppendLine("内容:");
+                            foreach (var line in contentLines)
+                            {
+                                textContent.AppendLine($"  {line}");
+                            }
+                        }
+                        
+                        textContent.AppendLine();
+                    }
+                }
+                
+                // 写入文件
+                await File.WriteAllTextAsync(file, textContent.ToString(), Encoding.UTF8);
+                
+                // 显示成功消息
+                await ShowExportSuccessMessage(file);
+            }
+            catch (Exception ex)
+            {
+                // 如果在导出过程中发生异常，将异常信息添加到 SnackbarMessageQueue 中显示
+                ViewModel.SnackbarMessageQueue.Enqueue($"文本导出失败：{ex.Message}");
+            }
+        }
+        
+        /// <summary>
+        /// 导出为JSON格式
+        /// </summary>
+        private async Task ExportToJson()
+        {
+            // 初始化一个文件保存对话框组件
+            var dialog = new System.Windows.Forms.SaveFileDialog()
+            {
+                // 设置对话框中显示的文件类型过滤器
+                Filter = "JSON 文件 (*.json)|*.json"
+            };
+
+            // 生成一个默认的文件名，包含时间戳
+            var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            dialog.FileName = $"Export_{timestamp}.json"; // 自动填写文件名
+
+            // 显示文件保存对话框，并检查是否点击了"保存"按钮
+            if (dialog.ShowDialog() != System.Windows.Forms.DialogResult.OK)
+            {
+                dialog.Dispose();
+                return;
+            }
+
+            // 获取用户选择的文件保存路径
+            var file = dialog.FileName;
+            dialog.Dispose();
+
+            try
+            {
+                // 序列化作业数据为JSON格式
+                var options = new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                };
+                
+                var jsonData = JsonSerializer.Serialize(ProfileService.Profile.Homeworks, options);
+                
+                // 写入文件
+                await File.WriteAllTextAsync(file, jsonData, Encoding.UTF8);
+                
+                // 显示成功消息
+                await ShowExportSuccessMessage(file);
+            }
+            catch (Exception ex)
+            {
+                // 如果在导出过程中发生异常，将异常信息添加到 SnackbarMessageQueue 中显示
+                ViewModel.SnackbarMessageQueue.Enqueue($"JSON导出失败：{ex.Message}");
+            }
         }
 
         /// <summary>
