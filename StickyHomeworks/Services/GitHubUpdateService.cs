@@ -61,6 +61,14 @@ public class GitHubUpdateService
 
     public async Task<GitHubRelease?> GetLatestReleaseAsync()
     {
+        // 检查当前版本是否为nightly build，如果是则禁用更新
+        var currentVersion = GetCurrentVersion().ToLower();
+        if (currentVersion.Contains("nightly") || currentVersion.Contains("dev") || currentVersion.Contains("alpha"))
+        {
+            // 当前版本是nightly build，禁用更新检查
+            return null;
+        }
+
         try
         {
             var releases = await _httpClient.GetFromJsonAsync<GitHubRelease[]>(GitHubApiBaseUrl);

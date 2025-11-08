@@ -1,4 +1,4 @@
-using CommunityToolkit.Mvvm.ObservableObject;
+using CommunityToolkit.Mvvm.ComponentModel;
 using MaterialDesignThemes.Wpf;
 using StickyHomeworks.Models;
 using System.Windows.Controls;

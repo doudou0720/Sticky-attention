@@ -897,6 +897,27 @@ End Sub
     {
         try
         {
+            // 检查当前版本是否为nightly build
+            var currentVersion = _updateService.GetCurrentVersion().ToLower();
+            if (currentVersion.Contains("nightly") || currentVersion.Contains("dev") || currentVersion.Contains("alpha"))
+            {
+                // 当前版本是nightly build，显示提示信息
+                Dispatcher.Invoke(() =>
+                {
+                    versionStatusTextBlock.Text = "更新检查已禁用";
+                    versionStatusTextBlock.FontSize = 40;
+                    versionStatusTextBlock.FontWeight = FontWeights.Bold;
+                    versionStatusText.Text = "您正在使用开发版本";
+                    versionStatusTexts.Text = "开发版本无法检查更新";
+                    versionStatusText.FontSize = 18;
+                    versionStatusText.FontWeight = FontWeights.Bold;
+                    statusIcon.Source = new BitmapImage(new Uri(IconPath02, UriKind.Relative));
+                    pbDown.Visibility = Visibility.Collapsed;
+                    labelProgress.Visibility = Visibility.Collapsed;
+                });
+                return;
+            }
+
             // 使用GitHub API获取最新版本信息
             var latestRelease = await _updateService.GetLatestReleaseAsync();
             

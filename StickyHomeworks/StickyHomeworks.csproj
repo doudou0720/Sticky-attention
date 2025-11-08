@@ -68,6 +68,7 @@
     </PackageReference>
     <PackageReference Include="Sentry" Version="4.12.1" />
     <PackageReference Include="WindowsShortcutFactory" Version="1.2.0" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="Properties\Settings.Designer.cs">

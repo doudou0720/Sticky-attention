@@ -1,4 +1,4 @@
-using CommunityToolkit.Mvvm.ObservableObject;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.Hosting;
 using StickyHomeworks.Models;
 using System.ComponentModel;
