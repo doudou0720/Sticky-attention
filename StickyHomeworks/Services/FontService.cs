@@ -22,7 +22,12 @@ public static class FontService
         {
             if (!_isInitialized)
                 Initialize();
-            return _defaultFontFamily ?? new FontFamily("Microsoft YaHei UI");
+            var fontFamily = _defaultFontFamily ?? new FontFamily("Microsoft YaHei UI");
+            if (_defaultFontFamily == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"Using fallback font for DefaultFontFamily: Microsoft YaHei UI");
+            }
+            return fontFamily;
         }
     }
 
@@ -35,7 +40,12 @@ public static class FontService
         {
             if (!_isInitialized)
                 Initialize();
-            return _monoFontFamily ?? new FontFamily("Consolas");
+            var fontFamily = _monoFontFamily ?? new FontFamily("Consolas");
+            if (_monoFontFamily == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"Using fallback font for MonoFontFamily: Consolas");
+            }
+            return fontFamily;
         }
     }
 
@@ -50,25 +60,33 @@ public static class FontService
         try
         {
             // 尝试加载自定义字体
+            System.Diagnostics.Debug.WriteLine("Attempting to load LXGWWenKaiScreen font...");
             _defaultFontFamily = (FontFamily)Application.Current.FindResource("LXGWWenKaiScreen");
+            System.Diagnostics.Debug.WriteLine($"Successfully loaded LXGWWenKaiScreen font: {_defaultFontFamily}");
         }
         catch (Exception ex)
         {
             // 如果自定义字体加载失败，使用系统默认中文字体
             System.Diagnostics.Debug.WriteLine($"Failed to load LXGWWenKaiScreen font: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
             _defaultFontFamily = new FontFamily("Microsoft YaHei UI");
+            System.Diagnostics.Debug.WriteLine("Using fallback font: Microsoft YaHei UI");
         }
 
         try
         {
             // 尝试加载等宽字体
+            System.Diagnostics.Debug.WriteLine("Attempting to load LXGWWenKaiMono font...");
             _monoFontFamily = (FontFamily)Application.Current.FindResource("LXGWWenKaiMono");
+            System.Diagnostics.Debug.WriteLine($"Successfully loaded LXGWWenKaiMono font: {_monoFontFamily}");
         }
         catch (Exception ex)
         {
             // 如果等宽字体加载失败，使用系统默认等宽字体
             System.Diagnostics.Debug.WriteLine($"Failed to load LXGWWenKaiMono font: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
             _monoFontFamily = new FontFamily("Consolas");
+            System.Diagnostics.Debug.WriteLine("Using fallback font: Consolas");
         }
 
         _isInitialized = true;
@@ -84,10 +102,12 @@ public static class FontService
         try
         {
             var font = Application.Current.FindResource(fontResourceKey) as FontFamily;
+            System.Diagnostics.Debug.WriteLine($"Font availability check for '{fontResourceKey}': {font != null}");
             return font != null;
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"Error checking font availability for '{fontResourceKey}': {ex.Message}");
             return false;
         }
     }
@@ -103,10 +123,13 @@ public static class FontService
         try
         {
             var font = Application.Current.FindResource(fontResourceKey) as FontFamily;
+            System.Diagnostics.Debug.WriteLine($"GetFontFamilyOrDefault for '{fontResourceKey}': {(font != null ? font.ToString() : "not found, using fallback")}");
             return font ?? fallbackFont;
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"Error getting font '{fontResourceKey}': {ex.Message}");
+            System.Diagnostics.Debug.WriteLine("Using fallback font: " + fallbackFont.ToString());
             return fallbackFont;
         }
     }

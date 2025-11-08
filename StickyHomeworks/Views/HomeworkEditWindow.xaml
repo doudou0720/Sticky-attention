@@ -16,7 +16,6 @@
         d:DataContext="{d:DesignInstance local:HomeworkEditWindow}"
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
         Background="{x:Null}"
-        FontFamily="{StaticResource LXGWWenKaiScreen}"
         TextElement.FontWeight="Regular"
         TextElement.FontSize="15"
         TextOptions.TextFormattingMode="Ideal" 

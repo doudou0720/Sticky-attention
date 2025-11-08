@@ -120,10 +120,20 @@ namespace StickyHomeworks
         {
             ProfileService = profileService;
             SettingsService = settingsService;
+            
+            // 使用FontService设置窗口字体
+            System.Diagnostics.Debug.WriteLine("=== MainWindow Font Debug Info ===");
+            System.Diagnostics.Debug.WriteLine($"Default font from FontService: {FontService.DefaultFontFamily}");
+            System.Diagnostics.Debug.WriteLine($"Mono font from FontService: {FontService.MonoFontFamily}");
+            System.Diagnostics.Debug.WriteLine("=== End MainWindow Font Debug Info ===");
+            
+            // 设置窗口字体
+            FontFamily = FontService.DefaultFontFamily;
+            
             // 注册自动化焦点变化事件处理器
             //Automation.AddAutomationFocusChangedEventHandler(OnFocusChangedHandler);
             InitializeComponent();
-            // 注册焦点变化事件
+            // 注录焦点变化事件
             focusObserverService.FocusChanged += FocusObserverServiceOnFocusChanged;
             // 注册 ViewModel 属性变化事件
             ViewModel.PropertyChanged += ViewModelOnPropertyChanged;

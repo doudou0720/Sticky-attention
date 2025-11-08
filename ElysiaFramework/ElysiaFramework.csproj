@@ -16,7 +16,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-	<None Remove="Assets\Fonts\HarmonyOS_Sans_SC_Black.ttf" />
 	<None Remove="Assets\Fonts\LXGWWenKaiGBScreen.ttf" />
 	<None Remove="Assets\Fonts\LXGWWenKaiMonoGBScreen.ttf" />
   </ItemGroup>
@@ -28,9 +27,7 @@
 	<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="7.0.0" />
   </ItemGroup>
 
-  <ItemGroup>
-	  <None Remove="Assets\Fonts\HarmonyOS_Sans_SC_Black.ttf" />
-  </ItemGroup>
+
 
   <ItemGroup>
     <Resource Include="Assets\Fonts\LXGWWenKaiGBScreen.ttf" />

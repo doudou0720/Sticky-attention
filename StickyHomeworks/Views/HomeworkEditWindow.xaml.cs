@@ -72,13 +72,12 @@ public partial class HomeworkEditWindow : Window, INotifyPropertyChanged
     {
         MainWindow = mainWindow;
         SettingsService = settingsService;
-        DataContext = this;
-        InitializeComponent();
-
         AddImageCommand = new RelayCommand(AddImageToRichTextBox);
-
-        ViewModel.PropertyChanged += ViewModelOnPropertyChanged;
-        Loaded += HomeworkEditWindow_Loaded;
+        
+        // 使用FontService设置窗口字体
+        FontFamily = FontService.DefaultFontFamily;
+        
+        InitializeComponent();
     }
 
     private void AddImageToRichTextBox()
@@ -518,7 +517,6 @@ public partial class HomeworkEditWindow : Window, INotifyPropertyChanged
     {
         // 完成编辑，关闭窗口
         TryClose();
-        EditingFinished?.Invoke(this, EventArgs.Empty);
     }
 
 
