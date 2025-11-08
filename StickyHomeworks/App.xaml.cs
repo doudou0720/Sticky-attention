@@ -5,9 +5,11 @@ using ElysiaFramework.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using StickyHomeworks.Core.Context;
+using StickyHomeworks.Models;
 using StickyHomeworks.Services;
 using StickyHomeworks.Views;
 using System.Reflection;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Threading;
 using MessageBox = System.Windows.MessageBox;
@@ -244,6 +246,9 @@ public partial class App : AppEx
             Environment.Exit(0);
         }
 
+        // 检查并清理过期作业
+        CheckAndCleanupExpiredHomeworks();
+
         base.OnStartup(e);
 
         // 异步启动Web服务进程，避免阻塞主线程
@@ -287,6 +292,70 @@ public partial class App : AppEx
             Visible = true,
             ContextMenuStrip = CreateContextMenu()
         };
+    }
+
+    /// <summary>
+    /// 检查并清理过期作业
+    /// </summary>
+    private void CheckAndCleanupExpiredHomeworks()
+    {
+        try
+        {
+            // 获取配置文件路径
+            string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".config");
+            string profilePath = Path.Combine(configPath, "Profile.json");
+            
+            // 检查配置文件是否存在
+            if (!File.Exists(profilePath))
+                return;
+                
+            // 读取配置文件
+            string jsonContent = File.ReadAllText(profilePath);
+            
+            // 解析JSON内容
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+            var profile = JsonSerializer.Deserialize<Profile>(jsonContent, options);
+            
+            if (profile != null && profile.Homeworks != null)
+            {
+                // 获取当前时间
+                DateTime now = DateTime.Now;
+                
+                // 过滤掉过期的作业
+                int removedCount = profile.Homeworks.RemoveAll(h => h.DueTime < now);
+                
+                if (removedCount > 0)
+                {
+                    LogHelper.Info($"已清理 {removedCount} 个过期作业");
+                    
+                    // 保存更新后的配置文件
+                    var saveOptions = new JsonSerializerOptions 
+                    { 
+                        WriteIndented = true 
+                    };
+                    string updatedJson = JsonSerializer.Serialize(profile, saveOptions);
+                    File.WriteAllText(profilePath, updatedJson);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            LogHelper.Error($"清理过期作业时出错: {ex.Message}");
+        }
+    }
+
+    // 用于反序列化的数据结构
+    public class Profile
+    {
+        public List<Homework> Homeworks { get; set; } = new();
+    }
+    
+    public class Homework
+    {
+        public DateTime DueTime { get; set; }
     }
 
     // 初始化关键服务

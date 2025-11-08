@@ -113,6 +113,9 @@ namespace StickyHomeworks
 
         // 获取当前应用程序的执行目录
         string currentDirectory = AppDomain.CurrentDomain.BaseDirectory;
+        
+        // 作业状态检查定时器（每分钟检查一次）
+        private DispatcherTimer _homeworkStatusTimer;
 
 
         public MainWindow(ProfileService profileService,
@@ -167,6 +170,14 @@ namespace StickyHomeworks
             Unloaded += MainWindow_Unloaded;
 
             this.StateChanged += MainWindow_StateChanged;
+
+            // 初始化作业状态检查定时器，每小时运行一次
+            _homeworkStatusTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromHours(1)
+            };
+            _homeworkStatusTimer.Tick += HomeworkStatusTimer_Tick;
+            _homeworkStatusTimer.Start();
 
             // 异步执行窗口位置校正，避免阻塞UI线程
             _ = Task.Run(async () =>
@@ -333,7 +344,7 @@ namespace StickyHomeworks
             }
             ViewModel.IsWorking = false;
         }
-        protected override async void OnInitialized(EventArgs e)
+        protected override void OnInitialized(EventArgs e)
         {
             // 初始化时清理过期作业
             ViewModel.ExpiredHomeworks = ProfileService.CleanupOutdated();
@@ -341,6 +352,8 @@ namespace StickyHomeworks
             {
                 ViewModel.CanRecoverExpireHomework = true;
                 // 如果有过期作业，显示提示信息，并提供恢复选项（误了）
+                ViewModel.SnackbarMessageQueue.Enqueue($"检测到 {ViewModel.ExpiredHomeworks.Count} 个过期作业，可以恢复。",
+                "恢复", (o) => { RecoverExpiredHomework(); }, null, false, false, TimeSpan.FromSeconds(30));
             }
             base.OnInitialized(e);
         }
@@ -362,34 +375,11 @@ namespace StickyHomeworks
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            // 当窗口加载完成后调用 Automaticclarity
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
-                Automaticclarity();
-            }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
-
-            var hwnd = new WindowInteropHelper(this).Handle;
-            var currentStyle = GetWindowLong(hwnd, GWL_STYLE);
-            SetWindowLong(hwnd, GWL_STYLE, currentStyle.ToInt32() & ~WS_MINIMIZEBOX);
-
-            // 注册全局钩子
-            _hookID = SetHook(_proc);
-
-    
-         
-            if (SettingsService.Settings.Lockwindow)
-            {
-              
-                ButtonLock.Visibility = Visibility.Visible;
-            }
-            else
-            { 
-                
-                ButtonLock.Visibility = Visibility.Collapsed;
-            }
-
-
+            // 窗口加载时立即检查一次作业状态
+            CheckHomeworkStatus();
             
+            // 启动作业状态检查定时器
+            _homeworkStatusTimer?.Start();
         }
 
         private void MainWindow_Unloaded(object sender, RoutedEventArgs e)
@@ -463,12 +453,20 @@ namespace StickyHomeworks
             // 恢复过期作业
             if (!ViewModel.CanRecoverExpireHomework)
                 return;
-            ViewModel.CanRecoverExpireHomework = false;
-            var rm = ViewModel.ExpiredHomeworks;
-            foreach (var i in rm)
+                
+            var expiredCount = ViewModel.ExpiredHomeworks.Count;
+            foreach (var homework in ViewModel.ExpiredHomeworks.ToList())
             {
-                ProfileService.Profile.Homeworks.Add(i);
+                // 更新作业的截止时间为当前时间后一天
+                homework.DueTime = DateTime.Now.AddDays(1);
+                homework.UpdateExpirationStatus();
             }
+            
+            // 清空过期作业列表
+            ViewModel.ExpiredHomeworks.Clear();
+            ViewModel.CanRecoverExpireHomework = false;
+            
+            ViewModel.SnackbarMessageQueue.Enqueue($"已恢复 {expiredCount} 个过期作业，作业截止时间已更新。");
         }
 
         protected override void OnContentRendered(EventArgs e)
@@ -728,16 +726,16 @@ namespace StickyHomeworks
 
         private void ButtonDateSetToday_OnClick(object sender, RoutedEventArgs e)
         {
-            // 设置编辑中的作业的截止日期为今天
-            ViewModel.EditingHomework.DueTime = DateTime.Today;
+            // 设置编辑中的作业的截止日期为今天当前时间
+            ViewModel.EditingHomework.DueTime = DateTime.Now;
         }
 
         private void ButtonDateSetWeekends_OnClick(object sender, RoutedEventArgs e)
         {
-            // 设置编辑中的作业的截止日期为周末
+            // 设置编辑中的作业的截止日期为周末当前时间
             var today = DateTime.Today;
             var delta = DayOfWeek.Saturday - today.DayOfWeek + 1;
-            ViewModel.EditingHomework.DueTime = today + TimeSpan.FromDays(delta);
+            ViewModel.EditingHomework.DueTime = today.Add(TimeSpan.FromDays(delta)).Add(DateTime.Now.TimeOfDay);
         }
 
         private void ButtonExpandingSwitcher_OnClick(object sender, RoutedEventArgs e)
@@ -961,8 +959,8 @@ namespace StickyHomeworks
                     // 遍历该科目的所有作业
                     foreach (var homework in subjectGroup.Value)
                     {
-                        // 添加作业信息
-                        textContent.AppendLine($"截止日期: {homework.DueTime:yyyy-MM-dd}");
+                        // 添加作业信息，包含完整的时间（精确到分钟）
+                        textContent.AppendLine($"截止时间: {homework.DueTime:yyyy-MM-dd HH:mm}");
                         
                         // 如果有标签，添加标签信息
                         if (homework.Tags.Any())
@@ -983,6 +981,7 @@ namespace StickyHomeworks
                         
                         textContent.AppendLine();
                     }
+
                 }
                 
                 // 写入文件
@@ -1108,8 +1107,8 @@ namespace StickyHomeworks
                     // 遍历该科目的所有作业
                     foreach (var homework in subjectGroup.Value)
                     {
-                        // 添加作业信息
-                        markdownContent.AppendLine($"- 截止日期: {homework.DueTime:yyyy-MM-dd}");
+                        // 添加作业信息，包含完整的时间（精确到分钟）
+                        markdownContent.AppendLine($"- 截止时间: {homework.DueTime:yyyy-MM-dd HH:mm}");
                         
                         // 如果有标签，添加标签信息
                         if (homework.Tags.Any())
@@ -1130,6 +1129,7 @@ namespace StickyHomeworks
                         
                         markdownContent.AppendLine();
                     }
+
                 }
                 
                 // 写入文件
@@ -1715,25 +1715,34 @@ namespace StickyHomeworks
             RecoverExpiredHomework();
         }
 
-        private void MenuItemBacktowork_OnClick(object sender, RoutedEventArgs e)
-        {
-            ViewModel.ExpiredHomeworks = ProfileService.CleanupOutdated();
-            if (ViewModel.ExpiredHomeworks.Count > 0)
-            {
-                ViewModel.CanRecoverExpireHomework = true;
-                // 如果有过期作业，显示提示信息，并提供恢复选项（误了）
-            }
-        }
-
         private void MenuItemBacktoworks_OnClick()
         {
-            ViewModel.ExpiredHomeworks = ProfileService.CleanupOutdated();
+            // 更新所有作业的状态并找出过期作业
+            var expiredHomeworks = new List<Homework>();
+            var now = DateTime.Now;
+            
+            foreach (var homework in ProfileService.Profile.Homeworks.ToList())
+            {
+                homework.UpdateExpirationStatus();
+                // 如果作业已过期，添加到过期作业列表
+                if (homework.DueTime <= now)
+                {
+                    expiredHomeworks.Add(homework);
+                }
+            }
+            
+            ViewModel.ExpiredHomeworks = expiredHomeworks;
+            
             if (ViewModel.ExpiredHomeworks.Count > 0)
             {
                 ViewModel.CanRecoverExpireHomework = true;
                 // 如果有过期作业，显示提示信息，并提供恢复选项（误了）
-                ViewModel.SnackbarMessageQueue.Enqueue($"清除了{ViewModel.ExpiredHomeworks.Count}条过期的作业。",
+                ViewModel.SnackbarMessageQueue.Enqueue($"已更新所有作业的状态，找到 {ViewModel.ExpiredHomeworks.Count} 个过期作业。",
                 "恢复", (o) => { RecoverExpiredHomework(); }, null, false, false, TimeSpan.FromSeconds(30));
+            }
+            else
+            {
+                ViewModel.SnackbarMessageQueue.Enqueue("所有作业状态已更新，未发现过期作业。");
             }
         }
 
@@ -1982,6 +1991,28 @@ namespace StickyHomeworks
                     ViewModel.SnackbarMessageQueue.Enqueue("setting文件已损坏。");
                     MessageBox.Show("setting文件已损坏。");
                 }
+            }
+        }
+        
+        /// <summary>
+        /// 作业状态检查定时器事件处理方法
+        /// </summary>
+        private void HomeworkStatusTimer_Tick(object sender, EventArgs e)
+        {
+            CheckHomeworkStatus();
+        }
+
+        /// <summary>
+        /// 检查作业状态并在需要时更新显示
+        /// </summary>
+        private void CheckHomeworkStatus()
+        {
+            var now = DateTime.Now;
+            
+            foreach (var homework in ProfileService.Profile.Homeworks)
+            {
+                // 更新作业的过期状态
+                homework.UpdateExpirationStatus();
             }
         }
 

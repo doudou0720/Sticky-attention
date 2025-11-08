@@ -10,6 +10,8 @@ public class Homework : ObservableRecipient
     private string _subject = "";
     private DateTime _dueTime = DateTime.Today;
     private ObservableCollection<string> _tags = new();
+    private bool _isNearExpiration = false;
+    private bool _isExpired = false;
 
     public string Content
     {
@@ -41,6 +43,8 @@ public class Homework : ObservableRecipient
             if (value.Equals(_dueTime)) return;
             _dueTime = value;
             OnPropertyChanged();
+            // 当截止时间改变时，更新状态
+            UpdateExpirationStatus();
         }
     }
 
@@ -53,6 +57,56 @@ public class Homework : ObservableRecipient
             _tags = value;
             OnPropertyChanged();
         }
+    }
+    
+    /// <summary>
+    /// 获取或设置作业是否临近过期（过期前20分钟内）
+    /// </summary>
+    public bool IsNearExpiration
+    {
+        get => _isNearExpiration;
+        set
+        {
+            if (value == _isNearExpiration) return;
+            _isNearExpiration = value;
+            OnPropertyChanged();
+        }
+    }
+    
+    /// <summary>
+    /// 获取或设置作业是否已过期
+    /// </summary>
+    public bool IsExpired
+    {
+        get => _isExpired;
+        set
+        {
+            if (value == _isExpired) return;
+            _isExpired = value;
+            OnPropertyChanged();
+        }
+    }
+    
+    /// <summary>
+    /// 更新作业的过期状态
+    /// </summary>
+    public void UpdateExpirationStatus()
+    {
+        var now = DateTime.Now;
+        IsExpired = DueTime <= now;
+        IsNearExpiration = DueTime > now && DueTime <= now.AddMinutes(20);
+    }
+
+    public Homework()
+    {
+        // 监听属性变化事件，以便在时间变化时更新状态
+        PropertyChanged += (sender, args) =>
+        {
+            if (args.PropertyName == nameof(DueTime))
+            {
+                UpdateExpirationStatus();
+            }
+        };
     }
 }
 

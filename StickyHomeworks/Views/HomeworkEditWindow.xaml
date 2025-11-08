@@ -69,10 +69,22 @@
                                   SelectionChanged="Selector_OnSelectionChanged"
                                   ItemsSource="{Binding SettingsService.Settings.Subjects}"
                                   SelectedItem="{Binding MainWindow.ViewModel.SelectedHomework.Subject}"/>
-                            <DatePicker Grid.Column="5"
+                            <DatePicker Grid.Column="2"
                                     Style="{StaticResource MaterialDesignFloatingHintDatePicker}"
                                     materialDesign:HintAssist.Hint="截止日期"
                                     SelectedDate="{Binding MainWindow.ViewModel.SelectedHomework.DueTime}"/>
+                        </Grid>
+                        <Grid Margin="0 6 0 0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition/>
+                                <ColumnDefinition Width="5"/>
+                                <ColumnDefinition/>
+                            </Grid.ColumnDefinitions>
+                            <materialDesign:TimePicker Grid.Column="0"
+                                    Style="{StaticResource MaterialDesignFloatingHintTimePicker}"
+                                    materialDesign:HintAssist.Hint="截止时间"
+                                    Is24Hours="True"
+                                    SelectedTime="{Binding MainWindow.ViewModel.SelectedHomework.DueTime}"/>
                         </Grid>
                         <Separator Margin="-6 6"/>
                         <ely:IconText Kind="LabelMultiple" Text="快捷标签"/>

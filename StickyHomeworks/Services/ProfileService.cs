@@ -87,12 +87,23 @@ public class ProfileService : IHostedService, INotifyPropertyChanged
 
     public List<Homework> CleanupOutdated()
     {
-        var rm = Profile.Homeworks.Where(i => i.DueTime.Date < DateTime.Today.Date).ToList();
-        foreach (var i in rm)
+        // 收集过期的作业
+        var expiredHomeworks = new List<Homework>();
+        var now = DateTime.Now;
+        
+        foreach (var homework in Profile.Homeworks.ToList()) // 使用ToList()避免在迭代时修改集合
         {
-            Profile.Homeworks.Remove(i);
+            // 更新作业的过期状态
+            homework.UpdateExpirationStatus();
+            
+            // 如果作业已过期，添加到过期作业列表
+            if (homework.DueTime <= now)
+            {
+                expiredHomeworks.Add(homework);
+            }
         }
-        return rm;
+        
+        return expiredHomeworks;
     }
 
     public void SaveProfile()
