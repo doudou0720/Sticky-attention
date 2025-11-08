@@ -443,7 +443,7 @@ namespace StickyHomeworks
 
             }
             // 手动调用事件处理程序
-            MenuItemBacktoworks_OnClick();
+            MenuItemBacktoworks_OnClick(this, new RoutedEventArgs());
 
         }
 
@@ -1715,7 +1715,7 @@ namespace StickyHomeworks
             RecoverExpiredHomework();
         }
 
-        private void MenuItemBacktoworks_OnClick()
+        private void MenuItemBacktoworks_OnClick(object sender, RoutedEventArgs e)
         {
             // 更新所有作业的状态并找出过期作业
             var expiredHomeworks = new List<Homework>();
