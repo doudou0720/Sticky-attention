@@ -8,7 +8,7 @@ public class Homework : ObservableRecipient
 {
     private string _content = "";
     private string _subject = "";
-    private DateTime _dueTime = DateTime.Today;
+    private DateTime _dueTime = DateTime.Today.Add(new TimeSpan(23, 59, 59));
     private ObservableCollection<string> _tags = new();
     private bool _isNearExpiration = false;
     private bool _isExpired = false;

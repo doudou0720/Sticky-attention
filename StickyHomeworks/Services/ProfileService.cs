@@ -76,6 +76,16 @@ public class ProfileService : IHostedService, INotifyPropertyChanged
         var r = JsonSerializer.Deserialize<Profile>(json);
         if (r != null)
         {
+            // 处理作业截止时间，为没有详细到秒的作业设置当天的23:59:59
+            foreach (var homework in r.Homeworks)
+            {
+                // 如果截止时间是当天的00:00:00，说明没有详细到秒，设置为当天的23:59:59
+                if (homework.DueTime.TimeOfDay == TimeSpan.Zero)
+                {
+                    homework.DueTime = homework.DueTime.Date.Add(new TimeSpan(23, 59, 59));
+                }
+            }
+            
             // 先移除旧的事件处理程序（如果有的话）
             _profile.PropertyChanged -= ProfileOnPropertyChanged;
             

@@ -7,6 +7,7 @@ using System.Text.Json;
 using StickyHomeworks;
 using static StickyHomeworks.App;
 using System.Threading.Tasks;
+using System.Collections.ObjectModel;
 
 namespace StickyHomeworks.Services;
 
@@ -127,6 +128,22 @@ public class SettingsService : ObservableRecipient, IHostedService
 
                 if (settings != null)
                 {
+                    // 确保Subjects集合正确初始化
+                    if (settings.Subjects == null || settings.Subjects.Count == 0)
+                    {
+                        settings.Subjects = new ObservableCollection<string>
+                        {
+                            "语文",
+                            "数学",
+                            "英语",
+                            "化学",
+                            "生物",
+                            "政治",
+                            "历史",
+                            "地理"
+                        };
+                    }
+                    
                     lock (_lockObject)
                     {
                         // 移除旧的事件处理程序

@@ -529,7 +529,7 @@ namespace StickyHomeworks
             ViewModel.IsDrawerOpened = true;
             var o = new Homework()
             {
-                Subject = lastSubject
+                Subject = string.IsNullOrEmpty(lastSubject) ? "其它" : lastSubject
             };
             ViewModel.EditingHomework = o;
             ViewModel.SelectedHomework = o;
@@ -726,16 +726,16 @@ namespace StickyHomeworks
 
         private void ButtonDateSetToday_OnClick(object sender, RoutedEventArgs e)
         {
-            // 设置编辑中的作业的截止日期为今天当前时间
-            ViewModel.EditingHomework.DueTime = DateTime.Now;
+            // 设置编辑中的作业的截止日期为今天晚上23:59:59
+            ViewModel.EditingHomework.DueTime = DateTime.Today.Add(new TimeSpan(23, 59, 59));
         }
 
         private void ButtonDateSetWeekends_OnClick(object sender, RoutedEventArgs e)
         {
-            // 设置编辑中的作业的截止日期为周末当前时间
+            // 设置编辑中的作业的截止日期为周末晚上23:59:59
             var today = DateTime.Today;
             var delta = DayOfWeek.Saturday - today.DayOfWeek + 1;
-            ViewModel.EditingHomework.DueTime = today.Add(TimeSpan.FromDays(delta)).Add(DateTime.Now.TimeOfDay);
+            ViewModel.EditingHomework.DueTime = today.Add(TimeSpan.FromDays(delta)).Add(new TimeSpan(23, 59, 59));
         }
 
         private void ButtonExpandingSwitcher_OnClick(object sender, RoutedEventArgs e)
