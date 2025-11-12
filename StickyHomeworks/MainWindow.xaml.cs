@@ -529,7 +529,8 @@ namespace StickyHomeworks
             ViewModel.IsDrawerOpened = true;
             var o = new Homework()
             {
-                Subject = string.IsNullOrEmpty(lastSubject) ? "其它" : lastSubject
+                Subject = string.IsNullOrEmpty(lastSubject) ? "其它" : lastSubject,
+                DueTime = DateTime.Today.Add(SettingsService.Settings.DefaultDueTime)
             };
             ViewModel.EditingHomework = o;
             ViewModel.SelectedHomework = o;

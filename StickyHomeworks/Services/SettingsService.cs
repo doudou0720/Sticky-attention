@@ -54,6 +54,20 @@ public class SettingsService : ObservableRecipient, IHostedService
         Settings.PropertyChanged += SettingsOnPropertyChanged;
         // 不再在构造函数中加载设置，改为按需加载
         OnSettingsChanged += OnOnSettingsChanged;
+        
+        // 确保Subjects集合始终正确初始化
+        EnsureSubjectsInitialized();
+    }
+    
+    private static readonly string[] DefaultSubjects = { "语文", "数学", "英语", "化学", "生物", "政治", "历史", "地理" };
+
+    private void EnsureSubjectsInitialized()
+    {
+        // 确保Subjects集合始终包含默认科目
+        if (Settings.Subjects == null || Settings.Subjects.Count == 0)
+        {
+            Settings.Subjects = new ObservableCollection<string>(DefaultSubjects);
+        }
     }
 
     private void SettingsOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -162,6 +176,9 @@ public class SettingsService : ObservableRecipient, IHostedService
                 // 处理异常，比如使用默认设置或通知用户
             }
         }
+        
+        // 确保Subjects集合始终正确初始化
+        EnsureSubjectsInitialized();
     }
 
     private readonly object _lockObject = new object();

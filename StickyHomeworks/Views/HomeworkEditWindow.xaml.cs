@@ -54,9 +54,17 @@ public partial class HomeworkEditWindow : Window, INotifyPropertyChanged
     {
         if (IsOpened)
             return;
-        Show();
-        Activate();
-        IsOpened = true;
+        
+        // 确保设置已加载后再显示窗口
+        _ = EnsureSettingsLoadedAsync().ContinueWith(_ =>
+        {
+            Dispatcher.Invoke(() =>
+            {
+                Show();
+                Activate();
+                IsOpened = true;
+            });
+        });
     }
 
     public void TryClose()
@@ -78,6 +86,24 @@ public partial class HomeworkEditWindow : Window, INotifyPropertyChanged
         FontFamily = FontService.DefaultFontFamily;
         
         InitializeComponent();
+    }
+
+    // 添加一个方法确保设置已加载
+    public async Task EnsureSettingsLoadedAsync()
+    {
+        // 如果SettingsService有EnsureSettingsLoadedAsync方法，则等待其完成
+        // 这可以确保Subjects集合已正确初始化
+        var settingsService = SettingsService;
+        if (settingsService != null)
+        {
+            // 检查是否包含EnsureSettingsLoadedAsync方法
+            var method = settingsService.GetType().GetMethod("EnsureSettingsLoadedAsync");
+            if (method != null)
+            {
+                var task = (Task)method.Invoke(settingsService, null);
+                await task;
+            }
+        }
     }
 
     private void AddImageToRichTextBox()
@@ -603,26 +629,41 @@ public partial class HomeworkEditWindow : Window, INotifyPropertyChanged
 
     public void ShowAtMousePosition()
     {
-        // 获取鼠标位置
-        var mousePosition = System.Windows.Forms.Control.MousePosition;
+        // 确保设置已加载
+        _ = EnsureSettingsLoadedAsync().ContinueWith(_ =>
+        {
+            // 在UI线程上执行窗口定位和显示操作
+            Dispatcher.Invoke(() =>
+            {
+                // 获取鼠标当前位置
+                var mousePosition = Mouse.GetPosition(null);
+                var dpi = VisualTreeHelper.GetDpi(this);
 
-        // 设置窗口位置为鼠标位置的右侧
-        Left = mousePosition.X + 10; // 向右偏移10个像素
-        Top = mousePosition.Y;
+                // 计算鼠标相对于主窗口的位置
+                var mainWindowPosition = new Point(MainWindow.Left, MainWindow.Top);
+                var relativeMousePosition = new Point(
+                    (mousePosition.X - mainWindowPosition.X) * dpi.DpiScaleX,
+                    (mousePosition.Y - mainWindowPosition.Y) * dpi.DpiScaleY);
 
-        // 确保窗口在屏幕内
-        var screenWidth = SystemParameters.PrimaryScreenWidth;
-        var screenHeight = SystemParameters.PrimaryScreenHeight;
+                // 设置窗口位置在鼠标右侧
+                Left = MainWindow.Left + relativeMousePosition.X + 10;
+                Top = MainWindow.Top + relativeMousePosition.Y;
 
-        // 确保窗口在屏幕内
-        if (Left < 0) Left = 0;
-        if (Top < 0) Top = 0;
-        if (Left + ActualWidth > screenWidth) Left = screenWidth - ActualWidth;
-        if (Top + ActualHeight > screenHeight) Top = screenHeight - ActualHeight;
+                // 确保窗口在屏幕范围内
+                var screenWidth = SystemParameters.PrimaryScreenWidth;
+                var screenHeight = SystemParameters.PrimaryScreenHeight;
 
-        // 显示窗口
-        Show();
-        IsOpened = true; // 设置窗口状态为已打开
+                if (Left < 0) Left = 0;
+                if (Top < 0) Top = 0;
+                if (Left + ActualWidth > screenWidth) Left = screenWidth - ActualWidth;
+                if (Top + ActualHeight > screenHeight) Top = screenHeight - ActualHeight;
+
+                // 显示窗口
+                Show();
+                Activate();
+                IsOpened = true; // 设置窗口状态为已打开
+            });
+        });
     }
 
 

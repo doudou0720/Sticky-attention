@@ -464,6 +464,20 @@ public class Settings : ObservableRecipient
         }
     }
 
+    // 添加默认截止时间属性
+    private TimeSpan _defaultDueTime = new TimeSpan(23, 59, 59);
+    
+    public TimeSpan DefaultDueTime
+    {
+        get => _defaultDueTime;
+        set
+        {
+            if (value == _defaultDueTime) return;
+            _defaultDueTime = value;
+            OnPropertyChanged();
+        }
+    }
+
     public bool Writbackup
     {
         get => _writbackup;

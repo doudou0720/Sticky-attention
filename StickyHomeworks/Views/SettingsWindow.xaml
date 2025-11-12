@@ -357,6 +357,26 @@
                         </ScrollViewer>
                     </TabItem>
 
+                    <!-- 时间设置 -->
+                    <TabItem Header="时间">
+                        <ScrollViewer>
+                            <StackPanel Style="{StaticResource SettingsPageStackPanelStyle}">
+                                <ely:IconText Kind="ClockOutline" Text="默认截止时间" Margin="0 0 0 8"/>
+                                
+                                <!-- 默认截止时间 -->
+                                <ely:SettingsCard IconGlyph="ClockOutline" Header="默认截止时间"
+                                                  Description="新建作业时默认的截止时间。">
+                                    <ely:SettingsCard.Switcher>
+                                        <materialDesign:TimePicker 
+                                            Text="{Binding Settings.DefaultDueTime, Mode=TwoWay}" 
+                                            Is24Hours="True" 
+                                            WithSeconds="True" />
+                                    </ely:SettingsCard.Switcher>
+                                </ely:SettingsCard>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
+
                     <!-- 外观 -->
                     <TabItem Header="外观">
                         <ScrollViewer>
