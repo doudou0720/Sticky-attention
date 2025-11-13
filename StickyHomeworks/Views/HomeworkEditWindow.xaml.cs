@@ -73,6 +73,12 @@ public partial class HomeworkEditWindow : Window, INotifyPropertyChanged
             return;
         IsOpened = false;
         Hide();
+        
+        // 触发编辑完成事件
+        EditingFinished?.Invoke(this, EventArgs.Empty);
+        
+        // 保存用户配置文件
+        AppEx.GetService<ProfileService>().SaveProfile();
     }
 
 
@@ -543,6 +549,9 @@ public partial class HomeworkEditWindow : Window, INotifyPropertyChanged
     {
         // 完成编辑，关闭窗口
         TryClose();
+        
+        // 保存用户配置文件
+        AppEx.GetService<ProfileService>().SaveProfile();
     }
 
 

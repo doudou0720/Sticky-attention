@@ -387,6 +387,12 @@
                     </ListView.ItemTemplate>
                 </ListView>
 
+                <Grid Name="OverlayGrid" Visibility="Collapsed" Grid.Row="1">
+                    <Grid.Background>
+                        <SolidColorBrush Color="#80000000" />
+                    </Grid.Background>
+                </Grid>
+
                 <!--布置作业 -->
                 <Button Grid.Row="5"
                         Click="ButtonCreateHomework_OnClick"
@@ -460,13 +466,6 @@
                 <!-- Snackbar -->
                 <materialDesign:Snackbar Grid.Row="0" Grid.RowSpan="3"
                                          MessageQueue="{Binding ViewModel.SnackbarMessageQueue}"/>
-
-                <Grid Name="OverlayGrid" Visibility="Hidden">
-                    <Grid.Background>
-                        <SolidColorBrush Color="#80000000" />
-                    </Grid.Background>
-                  
-                </Grid>
             </Grid>
         </materialDesign:DrawerHost>
     </materialDesign:DialogHost>

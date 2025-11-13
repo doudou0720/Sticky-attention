@@ -38,8 +38,6 @@ namespace StickyHomeworks
     /// </summary>
     public partial class MainWindow : Window
     {
-        private PropertyChangedEventHandler ViewModelOnPropertyChanged;
-
         // 添加拖拽排序相关字段（鼠标）
         private Point _startPoint;
         private bool _isDragging;
@@ -144,13 +142,9 @@ namespace StickyHomeworks
             ViewModel.PropertyChanging += ViewModelOnPropertyChanging;
             // 设置窗口的数据上下文为当前窗口实例
             DataContext = this;
-            // 注册窗口关闭事件（可能无效）
+            // 注册窗口关闭事件
             Closing += OnApplicationExit;
-            focusObserverService.FocusChanged += FocusObserverServiceOnFocusChanged;
             this.Loaded += MainWindow_Loaded;
-            ViewModel.PropertyChanged += ViewModelOnPropertyChanged;
-            ViewModel.PropertyChanging += ViewModelOnPropertyChanging;
-            DataContext = this;
             Application.Current.Exit += OnApplicationExits;
             //删除那一坨备份
             string folderName = "SA-AutoBackup";
@@ -276,6 +270,8 @@ namespace StickyHomeworks
             AppEx.GetService<HomeworkEditWindow>().TryClose();
             // 保存用户配置文件
             AppEx.GetService<ProfileService>().SaveProfile();
+            // 保存应用程序设置，确保窗口位置、状态等被持久化
+            SettingsService.SaveSettings();
         }
 
         private void SetPos()
@@ -510,6 +506,10 @@ namespace StickyHomeworks
         {
             // 编辑完成时退出编辑模式
             ExitEditingMode();
+            
+            // 保存用户配置文件
+            AppEx.GetService<ProfileService>().SaveProfile();
+            
             AutoExport();
         }
 
@@ -2019,27 +2019,31 @@ namespace StickyHomeworks
 
         private void ButtonLock_Click(object sender, RoutedEventArgs e)
         {
-            // 判断遮罩层是否已经显示
-            if (OverlayGrid.Visibility == Visibility.Visible)
+            // 切换IsUnlocked状态
+            ViewModel.IsUnlocked = !ViewModel.IsUnlocked;
+        }
+        
+        private void ViewModelOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(ViewModel.IsUnlocked))
             {
-                // 遮罩层已显示，隐藏遮罩层并切换按钮图标为 "lock"
-                OverlayGrid.Visibility = Visibility.Collapsed;
-                ButtonLock.Content = new PackIcon { Kind = PackIconKind.Lock, Width = 18 };
-                ButtonLock.ToolTip = "锁定页面";
-
-               
-                
-            }
-            else
-            {
-           
-                OverlayGrid.Visibility = Visibility.Visible;
-                ButtonLock.Content = new PackIcon { Kind = PackIconKind.LockOff, Width = 18 };
-                ButtonLock.ToolTip = "解锁页面";
-
-
-                
+                // 根据IsUnlocked状态设置OverlayGrid的可见性
+                if (ViewModel.IsUnlocked)
+                {
+                    // 窗口已解锁，隐藏遮罩层并切换按钮图标为 "lock"
+                    OverlayGrid.Visibility = Visibility.Collapsed;
+                    ButtonLock.Content = new PackIcon { Kind = PackIconKind.Lock, Width = 18 };
+                    ButtonLock.ToolTip = "锁定页面";
+                }
+                else
+                {
+                    // 窗口已锁定，显示遮罩层并切换按钮图标为 "lock-off"
+                    OverlayGrid.Visibility = Visibility.Visible;
+                    ButtonLock.Content = new PackIcon { Kind = PackIconKind.LockOff, Width = 18 };
+                    ButtonLock.ToolTip = "解锁页面";
+                }
             }
         }
+
     }
 }

@@ -65,11 +65,6 @@ public partial class CrashWindow : MyWindow
         base.OnContentRendered(e);
     }
 
-    private void ButtonIgnore_OnClick(object sender, RoutedEventArgs e)
-    {
-        Close();
-    }
-
     private void ButtonExit_OnClick(object sender, RoutedEventArgs e)
     {
         Application.Current.Shutdown();
@@ -314,13 +309,24 @@ public partial class CrashWindow : MyWindow
 
     private void CrashWindow_OnClosed(object? sender, CancelEventArgs e)
     {
-        IsShowed = false;
-        Hide();
-        e.Cancel = true;
+        // 只有在非正常关闭的情况下才隐藏窗口并取消关闭操作
+        if (IsShowed)
+        {
+            IsShowed = false;
+            Hide();
+            e.Cancel = true;
+        }
     }
 
     private void ButtonRecover_OnClick(object sender, RoutedEventArgs e)
     {
         RestoreLatestSettingsJson();
+    }
+    
+    private void ButtonIgnore_OnClick(object sender, RoutedEventArgs e)
+    {
+        // 设置IsShowed为false，允许窗口正常关闭
+        IsShowed = false;
+        Close();
     }
 }
